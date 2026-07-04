@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  price       Float
+  durationDays Int
+  createdAt   DateTime @default(now())
+  members     Member[]
+}
+
+model Member {
+  id        String    @id @default(cuid())
+  userId    String
+  memberUserId String?
+  firstName String
+  phone     String
+  address   String?
+  gender    String?
+  endDate   DateTime?
+  status    String    @default("Active")
+  planId    String?
+  plan      Plan?     @relation(fields: [planId], references: [id])
+  frozenAt  DateTime?
+  image     String?
+  createdAt DateTime  @default(now())
+  payments  Payment[]
+  attendances Attendance[]
+  personalRecords PersonalRecord[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  userId    String
+  member    Member   @relation(fields: [memberId], references: [id])
+  memberId  String
+  amount    Float
+  mode      String
+  status    String   @default("Paid")
+  createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id          String   @id @default(cuid())
+  userId      String
+  member      Member?  @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberId    String?
+  memberName  String?
+  checkInTime DateTime @default(now())
+}
+
+model Expense {
+  id       String   @id @default(cuid())
+  userId   String
+  title    String
+  amount   Float
+  category String
+  date     DateTime
+}
+
+model GymConfig {
+  userId   String @id
+  gymName  String @default("Iron Forge Gym")
+  ownerName String?
+  gymLat   Float?
+  gymLng   Float?
+  gymRadius Float?
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model PersonalRecord {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  exercise  String
+  weight    Float
+  reps      Int      @default(1)
+  date      DateTime @default(now())
+}
+
