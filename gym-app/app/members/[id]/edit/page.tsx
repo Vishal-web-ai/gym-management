@@ -3,6 +3,7 @@ import { updateMember, getMemberById } from "@/lib/actions/members";
 import { getPlans } from "@/lib/actions/plans";
 import MemberForm from "../../MemberForm";
 import { notFound } from "next/navigation";
+import { requireAdminPage } from "@/lib/auth";
 
 type EditableMember = {
   id: string;
@@ -28,6 +29,7 @@ export default async function EditMemberPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminPage();
   const { id } = await params;
   let member: EditableMember | null = null;
   let plans: MemberPlan[] = [];

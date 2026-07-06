@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Camera, Upload, Trash2, X, AlertCircle } from "lucide-react";
 
 interface ImageUploadProps {
@@ -38,7 +39,7 @@ export default function ImageUpload({ defaultValue = null, name = "image" }: Ima
         videoRef.current.srcObject = stream;
       }
     } catch (err) {
-      console.error("Camera access error:", err);
+      if (process.env.NODE_ENV !== "production") console.error("Camera access error:", err);
       setError("Could not access camera. Please check permissions or upload a file.");
       setCameraActive(false);
     }
@@ -132,106 +133,172 @@ export default function ImageUpload({ defaultValue = null, name = "image" }: Ima
         Member Photo <span className="text-text-muted">(optional)</span>
       </label>
 
-      {error && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-red-500/10 px-4 py-3 text-xs text-red-400">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            key="upload-error"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            className="flex items-start gap-2.5 rounded-xl bg-red-500/10 px-4 py-3 text-xs text-red-400"
+          >
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Container */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06]"
+      >
         
         {/* Preview / Video Window */}
         <div className="relative w-32 h-32 rounded-2xl overflow-hidden bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
-          {cameraActive ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
-          ) : image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="Preview" className="w-full h-full object-cover" />
-          ) : (
-            <div className="text-text-muted flex flex-col items-center gap-1.5">
-              <Camera size={28} className="stroke-[1.5]" />
-              <span className="text-[10px] uppercase tracking-wider font-semibold">Add photo</span>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {cameraActive ? (
+              <motion.video
+                key="camera"
+                ref={videoRef}
+                autoPlay
+                playsInline
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="w-full h-full object-cover scale-x-[-1]"
+              />
+            ) : image ? (
+              <motion.div
+                key="preview"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="w-full h-full"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={image} alt="Preview" className="w-full h-full object-cover" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="text-text-muted flex flex-col items-center gap-1.5"
+              >
+                <Camera size={28} className="stroke-[1.5]" />
+                <span className="text-[10px] uppercase tracking-wider font-semibold">Add photo</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Quick Clear Hover Button */}
           {!cameraActive && image && (
-            <button
+            <motion.button
               type="button"
               onClick={removeImage}
-              className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity duration-200 flex items-center justify-center text-white"
+              initial={{ opacity: 0 }}
+              whileHover={{ opacity: 1 }}
+              className="absolute inset-0 bg-black/60 opacity-0 flex items-center justify-center text-white"
             >
               <Trash2 size={20} />
-            </button>
+            </motion.button>
           )}
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-col gap-2 w-full sm:w-auto">
+        <AnimatePresence mode="wait">
           {cameraActive ? (
-            <div className="flex gap-2">
-              <button
+            <motion.div
+              key="camera-controls"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="flex gap-2 w-full sm:w-auto"
+            >
+              <motion.button
                 type="button"
                 onClick={capturePhoto}
-                className="flex-1 sm:flex-initial rounded-xl bg-emerald-500 hover:bg-emerald-600 px-4 py-2 text-xs font-semibold text-white transition-all active:scale-[0.98]"
+                whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+                whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+                className="flex-1 sm:flex-initial rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white"
               >
                 Snap Photo
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={stopCamera}
-                className="rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] p-2 text-text-primary transition-all active:scale-[0.98]"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="rounded-xl bg-white/[0.06] border border-white/[0.08] p-2 text-text-primary"
                 title="Cancel"
               >
                 <X size={16} />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
-            <>
-              <div className="flex flex-wrap gap-2">
-                <button
+            <motion.div
+              key="file-controls"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="flex flex-col gap-2 w-full sm:w-auto"
+            >
+              <div className="flex flex-wrap justify-center gap-2">
+                <motion.button
                   type="button"
                   onClick={triggerFileInput}
-                  className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-text-primary transition-all duration-200 active:scale-[0.98]"
+                  whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+                  whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+                  className="flex items-center gap-1.5 rounded-xl bg-white/[0.06] border border-white/[0.08] px-3.5 py-2 text-xs font-semibold text-text-primary"
                 >
                   <Upload size={14} />
                   Choose File
-                </button>
+                </motion.button>
 
-                <button
+                <motion.button
                   type="button"
                   onClick={startCamera}
-                  className="flex items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 text-primary px-3.5 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98]"
+                  whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+                  whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+                  className="flex items-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary px-3.5 py-2 text-xs font-semibold"
                 >
                   <Camera size={14} />
                   Use Camera
-                </button>
+                </motion.button>
 
                 {image && (
-                  <button
+                  <motion.button
                     type="button"
                     onClick={removeImage}
-                    className="flex items-center gap-1.5 rounded-xl bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 px-3.5 py-2 text-xs font-semibold transition-all duration-200 active:scale-[0.98]"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+                    whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+                    className="flex items-center gap-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 px-3.5 py-2 text-xs font-semibold"
                   >
                     <Trash2 size={14} />
                     Remove
-                  </button>
+                  </motion.button>
                 )}
               </div>
               <p className="text-[11px] text-text-muted">
                 Accepts JPEG, PNG, WEBP. Photos are cropped square and compressed before saving.
               </p>
-            </>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </AnimatePresence>
+      </motion.div>
 
       {/* Hidden inputs to capture state in FormData */}
       <input type="hidden" name={name} value={image || ""} />

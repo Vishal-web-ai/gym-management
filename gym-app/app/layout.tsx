@@ -4,6 +4,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import SidebarNav from "@/components/SidebarNav";
+import AnimLayout from "@/components/AnimLayout";
+import { QueryProvider } from "@/lib/providers/query-provider";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -23,20 +25,9 @@ export const viewport: Viewport = {
   themeColor: "#080E1A",
 };
 
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.clerk.com https://challenges.cloudflare.com",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://img.clerk.com",
-  "font-src 'self' https://fonts.gstatic.com",
-  "connect-src 'self' https://*.clerk.com https://*.neon.tech",
-  "frame-src https://*.clerk.com https://challenges.cloudflare.com",
-].join("; ");
-
 export const metadata: Metadata = {
   title: "Gym Manager",
   description: "Mobile-first gym management platform",
-  other: { "Content-Security-Policy": csp },
 };
 
 export default function RootLayout({
@@ -45,14 +36,40 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider afterSignOutUrl="/sign-in" signUpForceRedirectUrl="/onboarding" signInFallbackRedirectUrl="/">
+    <ClerkProvider
+      afterSignOutUrl="/sign-in"
+      signUpForceRedirectUrl="/onboarding"
+      signInFallbackRedirectUrl="/"
+      localization={{
+        signIn: {
+          start: {
+            title: "Sign In",
+            subtitle: "Welcome back! Let's get your gym running smoothly.",
+          },
+        },
+        signUp: {
+          start: {
+            title: "Sign Up",
+            subtitle: "Create your account to get started.",
+          },
+        },
+      }}
+    >
       <html lang="en" className={`${plusJakarta.variable} ${bricolage.variable} h-full`}>
+        <head>
+          <link rel="preconnect" href="https://clerk.com" />
+          <link rel="preconnect" href="https://img.clerk.com" />
+          <link rel="dns-prefetch" href="https://clerk.com" />
+          <link rel="dns-prefetch" href="https://img.clerk.com" />
+        </head>
         <body className="h-full font-sans text-text-primary">
-          <SidebarNav />
-          <div className="mx-auto flex min-h-full w-full max-w-lg flex-col md:ml-64 md:max-w-none md:px-8 lg:max-w-3xl xl:max-w-4xl">
-            <main className="flex-1 pb-20 md:pb-8 animate-fade-in">{children}</main>
-          </div>
-          <BottomNav />
+          <QueryProvider>
+            <SidebarNav />
+            <div className="mx-auto flex min-h-full w-full max-w-lg flex-col md:ml-64 md:max-w-none md:px-8 lg:max-w-3xl xl:max-w-4xl">
+              <AnimLayout>{children}</AnimLayout>
+            </div>
+            <BottomNav />
+          </QueryProvider>
         </body>
       </html>
     </ClerkProvider>

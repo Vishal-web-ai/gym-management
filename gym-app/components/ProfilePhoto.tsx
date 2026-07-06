@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
 
 type ProfilePhotoProps = {
@@ -47,7 +48,7 @@ export default function ProfilePhoto({
 
   return (
     <>
-      <button
+      <motion.button
         type="button"
         aria-label={`View ${name} profile photo`}
         onClick={(event) => {
@@ -55,7 +56,9 @@ export default function ProfilePhoto({
           event.stopPropagation();
           setOpen(true);
         }}
-        className={`${baseClass} cursor-zoom-in transition-transform duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/60`}
+        whileHover={{ scale: 1.05, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+        whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+        className={`${baseClass} cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-primary/60`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -63,38 +66,59 @@ export default function ProfilePhoto({
           alt={`${name} profile photo`}
           className="h-full w-full object-cover"
         />
-      </button>
+      </motion.button>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col bg-black/95 animate-fade-in"
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${name} profile photo preview`}
-          onClick={() => setOpen(false)}
-        >
-          <div className="flex min-h-[64px] items-center justify-between px-4 py-3">
-            <p className="truncate text-sm font-medium text-white">{name}</p>
-            <button
-              type="button"
-              aria-label="Close photo preview"
-              onClick={() => setOpen(false)}
-              className="flex size-11 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="photo-lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex flex-col bg-black/95"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${name} profile photo preview`}
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ type: "spring", stiffness: 200, damping: 25 }}
+              className="flex min-h-[64px] items-center justify-between px-4 py-3"
             >
-              <X size={22} />
-            </button>
-          </div>
-          <div className="flex min-h-0 flex-1 items-center justify-center px-3 pb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={image}
-              alt={`${name} profile photo full size`}
-              className="max-h-full max-w-full rounded-lg object-contain"
-              onClick={(event) => event.stopPropagation()}
-            />
-          </div>
-        </div>
-      )}
+              <p className="truncate text-sm font-medium text-white">{name}</p>
+              <motion.button
+                type="button"
+                aria-label="Close photo preview"
+                onClick={() => setOpen(false)}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="flex size-11 items-center justify-center rounded-full bg-white/10 text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                <X size={22} />
+              </motion.button>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="flex min-h-0 flex-1 items-center justify-center px-3 pb-6"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={image}
+                alt={`${name} profile photo full size`}
+                className="max-h-full max-w-full rounded-lg object-contain"
+                onClick={(event) => event.stopPropagation()}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

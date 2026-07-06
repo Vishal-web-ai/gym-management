@@ -1,13 +1,21 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { getMembersPaginated } from "@/lib/actions/members";
+import { getGymConfig } from "@/lib/actions/settings";
 import MembersList from "./MembersList";
+import { requireAdminPage } from "@/lib/auth";
 
 export default async function MembersPage() {
+  await requireAdminPage();
+
   let result = { members: [] as any[], total: 0, hasMore: false };
   let membersError: string | null = null;
+  let gymName: string | undefined;
   try {
-    result = await getMembersPaginated(0, 20);
+    [result, gymName] = await Promise.all([
+      getMembersPaginated(0, 20),
+      getGymConfig().then((c) => c?.gymName ?? undefined),
+    ]);
   } catch (e) {
     membersError = e instanceof Error ? e.message : "Failed to load members";
   }
@@ -34,7 +42,7 @@ export default async function MembersPage() {
         </div>
       )}
 
-      <MembersList initial={result.members} initialHasMore={result.hasMore} />
+      <MembersList initial={result.members} initialHasMore={result.hasMore} gymName={gymName} />
     </div>
   );
 }

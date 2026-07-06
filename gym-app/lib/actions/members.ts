@@ -1,8 +1,7 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import {
   createMemberSchema,
   createMemberWithPaymentSchema,
@@ -13,66 +12,54 @@ import {
 import { requireAdmin } from "@/lib/auth";
 import { logActivity } from "@/lib/actions/activity";
 import { formatError } from "@/lib/actions/helpers";
-import type { PrismaClient } from "@/lib/generated/prisma/client";
-
-let db: PrismaClient | null = null;
-
-function prisma() {
-  if (!db) db = getPrisma() as PrismaClient;
-  return db;
-}
 
 function parseForm<T>(result: { success: true; data: T } | { success: false; error: unknown }) {
   if (result.success) return result.data;
   throw new Error(formatError(result.error));
 }
 
-async function getUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
-}
-
 export async function getMembers() {
-  const userId = await getUserId();
-  return prisma().member.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  return prisma.member.findMany({
+    where: { userId: user.gymOwnerId },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function getMembersPaginated(skip = 0, take = 20) {
-  const userId = await getUserId();
-  const [members, total] = await Promise.all([
-    prisma().member.findMany({
-      where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const [members, total] = await prisma.$transaction([
+    prisma.member.findMany({
+      where: { userId: ownerId },
       skip,
       take,
       orderBy: { createdAt: "desc" },
     }),
-    prisma().member.count({ where: { userId } }),
+    prisma.member.count({ where: { userId: ownerId } }),
   ]);
   return { members, total, hasMore: skip + take < total };
 }
 
 export async function getMemberById(id: string) {
-  const userId = await getUserId();
-  return prisma().member.findUnique({
-    where: { id, userId },
+  const user = await requireAdmin();
+  return prisma.member.findUnique({
+    where: { id, userId: user.gymOwnerId },
     include: { plan: true },
   });
 }
 
 export async function getPaymentsByMemberId(memberId: string) {
-  const userId = await getUserId();
-  return prisma().payment.findMany({
-    where: { memberId, userId },
+  const user = await requireAdmin();
+  return prisma.payment.findMany({
+    where: { memberId, userId: user.gymOwnerId },
     orderBy: { createdAt: "desc" },
   });
 }
 
 export async function createMember(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const planId = (formData.get("planId") as string) || "";
   const rawEndDate = (formData.get("endDate") as string) || "";
   const parsed = parseForm(createMemberSchema.safeParse({
@@ -86,7 +73,7 @@ export async function createMember(formData: FormData) {
   }));
 
   const data = {
-    userId,
+    userId: ownerId,
     firstName: parsed.firstName,
     phone: parsed.phone,
     address: parsed.address || undefined,
@@ -96,13 +83,14 @@ export async function createMember(formData: FormData) {
     endDate: new Date(parsed.endDate),
   };
 
-  await prisma().member.create({ data });
+  await prisma.member.create({ data });
   logActivity("member.created", JSON.stringify({ name: parsed.firstName }));
   revalidatePath("/members");
 }
 
 export async function createMemberWithPayment(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const planId = (formData.get("planId") as string) || "";
   const rawEndDate = (formData.get("endDate") as string) || "";
   const parsed = parseForm(createMemberWithPaymentSchema.safeParse({
@@ -118,7 +106,7 @@ export async function createMemberWithPayment(formData: FormData) {
   }));
 
   const memberData = {
-    userId,
+    userId: ownerId,
     firstName: parsed.firstName,
     phone: parsed.phone,
     status: "Active",
@@ -129,11 +117,11 @@ export async function createMemberWithPayment(formData: FormData) {
     endDate: new Date(parsed.endDate),
   };
 
-  const member = await prisma().member.create({ data: memberData });
+  const member = await prisma.member.create({ data: memberData });
 
-  await prisma().payment.create({
+  await prisma.payment.create({
     data: {
-      userId,
+      userId: ownerId,
       memberId: member.id,
       amount: parsed.amount,
       mode: parsed.mode,
@@ -148,7 +136,8 @@ export async function createMemberWithPayment(formData: FormData) {
 }
 
 export async function updateMember(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const planId = (formData.get("planId") as string) || "";
   const rawEndDate = (formData.get("endDate") as string) || "";
   const parsed = parseForm(updateMemberSchema.safeParse({
@@ -174,8 +163,8 @@ export async function updateMember(formData: FormData) {
   updateData.image = parsed.image; // can be string or null/empty string to clear
   updateData.endDate = new Date(parsed.endDate);
 
-  await prisma().member.update({
-    where: { id: parsed.id, userId },
+  await prisma.member.update({
+    where: { id: parsed.id, userId: ownerId },
     data: updateData,
   });
 
@@ -185,22 +174,25 @@ export async function updateMember(formData: FormData) {
 }
 
 export async function deleteMember(id: string) {
-  await requireAdmin();
-  const userId = await getUserId();
-  const member = await prisma().member.findUnique({ where: { id, userId } });
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const member = await prisma.member.findUnique({ where: { id, userId: ownerId } });
   if (!member) throw new Error("Member not found");
-  await prisma().payment.deleteMany({ where: { memberId: id, userId } });
-  await prisma().attendance.updateMany({
-    where: { memberId: id, userId },
-    data: { memberName: member.firstName },
-  });
-  await prisma().member.delete({ where: { id, userId } });
+  await Promise.all([
+    prisma.payment.deleteMany({ where: { memberId: id, userId: ownerId } }),
+    prisma.attendance.updateMany({
+      where: { memberId: id, userId: ownerId },
+      data: { memberName: member.firstName },
+    }),
+  ]);
+  await prisma.member.delete({ where: { id, userId: ownerId } });
   logActivity("member.deleted", JSON.stringify({ id }));
   revalidatePath("/members");
 }
 
 export async function logPayment(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const parsed = logPaymentSchema.parse({
     memberId: formData.get("memberId"),
     amount: formData.get("amount"),
@@ -211,18 +203,18 @@ export async function logPayment(formData: FormData) {
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const existing = await prisma().payment.findFirst({
+  const existing = await prisma.payment.findFirst({
     where: {
       memberId: parsed.memberId,
-      userId,
+      userId: ownerId,
       createdAt: { gte: startOfMonth },
     },
   });
   if (existing) throw new Error("Payment already logged this month");
 
-  const payment = await prisma().payment.create({
+  const payment = await prisma.payment.create({
     data: {
-      userId,
+      userId: ownerId,
       memberId: parsed.memberId,
       amount: parsed.amount,
       mode: parsed.mode,
@@ -230,8 +222,8 @@ export async function logPayment(formData: FormData) {
     },
   });
 
-  const total = await prisma().payment.aggregate({
-    where: { memberId: parsed.memberId, userId, status: "Paid" },
+  const total = await prisma.payment.aggregate({
+    where: { memberId: parsed.memberId, userId: ownerId, status: "Paid" },
     _sum: { amount: true },
   });
 
@@ -240,8 +232,8 @@ export async function logPayment(formData: FormData) {
   if (parsed.endDate) updateData.endDate = new Date(parsed.endDate);
 
   if ((total._sum.amount ?? 0) > 0) {
-    await prisma().member.update({
-      where: { id: parsed.memberId, userId },
+    await prisma.member.update({
+      where: { id: parsed.memberId, userId: ownerId },
       data: updateData,
     });
   }
@@ -253,13 +245,14 @@ export async function logPayment(formData: FormData) {
 }
 
 export async function freezeMember(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const parsed = freezeMemberSchema.parse({
     memberId: formData.get("memberId"),
   });
 
-  await prisma().member.update({
-    where: { id: parsed.memberId, userId },
+  await prisma.member.update({
+    where: { id: parsed.memberId, userId: ownerId },
     data: { status: "Frozen", frozenAt: new Date() },
   });
 
@@ -268,9 +261,9 @@ export async function freezeMember(formData: FormData) {
 }
 
 export async function getOverdueMembers() {
-  const userId = await getUserId();
-  return prisma().member.findMany({
-    where: { userId, status: "Overdue" },
+  const user = await requireAdmin();
+  return prisma.member.findMany({
+    where: { userId: user.gymOwnerId, status: "Overdue" },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -309,9 +302,10 @@ type CsvExpense = {
 };
 
 export async function exportMembersCSV() {
-  const userId = await getUserId();
-  const members = await prisma().member.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const members = await prisma.member.findMany({
+    where: { userId: ownerId },
     orderBy: { createdAt: "desc" },
   });
   const header = "First Name,Phone,Address,Gender,Status,Join Date,End Date\n";
@@ -330,9 +324,10 @@ export async function exportMembersCSV() {
 }
 
 export async function exportPaymentsCSV() {
-  const userId = await getUserId();
-  const payments = await prisma().payment.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const payments = await prisma.payment.findMany({
+    where: { userId: ownerId },
     orderBy: { createdAt: "desc" },
     include: { member: { select: { firstName: true } } },
   });
@@ -350,9 +345,10 @@ export async function exportPaymentsCSV() {
 }
 
 export async function exportExpensesCSV() {
-  const userId = await getUserId();
-  const expenses = await prisma().expense.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const expenses = await prisma.expense.findMany({
+    where: { userId: ownerId },
     orderBy: { date: "desc" },
   });
   const header = "Title,Amount,Category,Date\n";
@@ -363,19 +359,21 @@ export async function exportExpensesCSV() {
 }
 
 export async function unfreezeMember(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const parsed = freezeMemberSchema.parse({
     memberId: formData.get("memberId"),
   });
 
-  const member = await prisma().member.findUnique({
-    where: { id: parsed.memberId, userId },
-  });
-
-  const total = await prisma().payment.aggregate({
-    where: { memberId: parsed.memberId, userId, status: "Paid" },
-    _sum: { amount: true },
-  });
+  const [member, total] = await Promise.all([
+    prisma.member.findUnique({
+      where: { id: parsed.memberId, userId: ownerId },
+    }),
+    prisma.payment.aggregate({
+      where: { memberId: parsed.memberId, userId: ownerId, status: "Paid" },
+      _sum: { amount: true },
+    }),
+  ]);
 
   const newStatus = (total._sum.amount ?? 0) > 0 ? "Active" : "Overdue";
   const updateData: Record<string, unknown> = { status: newStatus, frozenAt: null };
@@ -389,8 +387,8 @@ export async function unfreezeMember(formData: FormData) {
     );
   }
 
-  await prisma().member.update({
-    where: { id: parsed.memberId, userId },
+  await prisma.member.update({
+    where: { id: parsed.memberId, userId: ownerId },
     data: updateData,
   });
 
@@ -399,7 +397,8 @@ export async function unfreezeMember(formData: FormData) {
 }
 
 export async function importMembersCSV(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
 
@@ -417,7 +416,7 @@ export async function importMembersCSV(formData: FormData) {
     throw new Error("CSV must have at least 'First Name' and 'Phone' columns");
   }
 
-  const created: string[] = [];
+  const rowsToCreate: { userId: string; firstName: string; phone: string; gender?: string; address?: string; status: string }[] = [];
   const errors: string[] = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -429,44 +428,59 @@ export async function importMembersCSV(formData: FormData) {
       continue;
     }
 
-    try {
-      const data = {
-        userId,
-        firstName: name,
-        phone,
-        gender: genderIdx !== -1 && cols[genderIdx] ? cols[genderIdx] : undefined,
-        address: addressIdx !== -1 && cols[addressIdx] ? cols[addressIdx] : undefined,
-        status: "Active",
-      };
-
-      await prisma().member.create({ data });
-      created.push(name);
-    } catch (e) {
-      errors.push(`Row ${i + 1}: ${e instanceof Error ? e.message : "Unknown error"}`);
-    }
+    rowsToCreate.push({
+      userId: ownerId,
+      firstName: name,
+      phone,
+      gender: genderIdx !== -1 && cols[genderIdx] ? cols[genderIdx] : undefined,
+      address: addressIdx !== -1 && cols[addressIdx] ? cols[addressIdx] : undefined,
+      status: "Active",
+    });
   }
 
-  logActivity("member.imported", JSON.stringify({ created: created.length, errors: errors.length }));
+  if (rowsToCreate.length > 0) {
+    await prisma.$transaction(
+      rowsToCreate.map((data) => prisma.member.create({ data }))
+    );
+  }
+
+  logActivity("member.imported", JSON.stringify({ created: rowsToCreate.length, errors: errors.length }));
   revalidatePath("/members");
 
-  return { created: created.length, errors };
+  return { created: rowsToCreate.length, errors };
 }
 
 export async function updateMemberStatuses() {
-  const { userId } = await auth();
-  if (!userId) return;
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
 
   const now = new Date();
-  const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+  const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
 
-  const activeOverdue = await prisma().member.updateMany({
-    where: { userId, status: "Active", endDate: { lt: now } },
-    data: { status: "Overdue" },
+  const config = await prisma.gymConfig.findUnique({
+    where: { userId: ownerId },
+    select: { lastStatusCheckAt: true },
   });
 
-  const overdueExpired = await prisma().member.updateMany({
-    where: { userId, status: "Overdue", endDate: { lt: tenDaysAgo } },
-    data: { status: "Expired" },
+  if (config?.lastStatusCheckAt && config.lastStatusCheckAt > sixHoursAgo) return;
+
+  const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+
+  const [activeOverdue, overdueExpired] = await Promise.all([
+    prisma.member.updateMany({
+      where: { userId: ownerId, status: "Active", endDate: { lt: now } },
+      data: { status: "Overdue" },
+    }),
+    prisma.member.updateMany({
+      where: { userId: ownerId, status: "Overdue", endDate: { lt: tenDaysAgo } },
+      data: { status: "Expired" },
+    }),
+  ]);
+
+  await prisma.gymConfig.upsert({
+    where: { userId: ownerId },
+    update: { lastStatusCheckAt: now },
+    create: { userId: ownerId, lastStatusCheckAt: now },
   });
 
   if (activeOverdue.count > 0) {

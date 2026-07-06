@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Edit3, Trash2, AlertCircle, Dumbbell, Pencil, X, Check, Download, Upload, HardDrive, MapPin } from "lucide-react";
 import { updateGymName, updateOwnerName, updateGymLocation } from "@/lib/actions/settings";
 import { createPlan, updatePlan, deletePlan } from "@/lib/actions/plans";
 import { exportBackup, importBackup } from "@/lib/actions/backup";
 import ConfirmDialog from "@/components/ConfirmDialog";
+
+const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
 
 export default function SettingsClient({
   config,
@@ -86,20 +89,28 @@ export default function SettingsClient({
 
   return (
     <div className="space-y-6">
-      <div className="glass-card rounded-xl p-5 space-y-5">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.05 }}
+        className="glass-card rounded-xl p-5 space-y-1"
+      >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary">General Information</h2>
+          <h2 className="text-lg font-semibold text-primary">General Information</h2>
           {!editing ? (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => setEditing(true)}
               className="flex items-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary min-h-[36px]"
             >
               <Edit3 size={14} />
               Edit
-            </button>
+            </motion.button>
           ) : (
             <div className="flex gap-2">
-              <button
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={() => {
                   setOwnerName(config.ownerName ?? "");
                   setGymName(config.gymName);
@@ -108,196 +119,239 @@ export default function SettingsClient({
                 className="rounded-xl bg-white/[0.06] px-3 py-2 text-xs font-medium text-text-muted min-h-[36px]"
               >
                 Cancel
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={handleSave}
                 disabled={saving}
                 className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-medium text-white min-h-[36px] disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           <div>
             {editing ? (
-              <div>
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <label className="block text-xs font-medium text-text-muted mb-1.5">Owner Name</label>
                 <input
                   value={ownerName}
                   onChange={(e) => setOwnerName(e.target.value)}
                   className="w-full rounded-xl bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none"
                 />
-              </div>
+              </motion.div>
             ) : (
-              <p className="text-sm font-semibold"><span className="text-amber-400">Owner Name :</span> <span className="text-white">{ownerName}</span></p>
+              <p className="text-sm"><span className="text-amber-400">Owner Name :</span> <span className="text-white">{ownerName}</span></p>
             )}
           </div>
 
           <div>
             {editing ? (
-              <div>
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
                 <label className="block text-xs font-medium text-text-muted mb-1.5">Gym Name</label>
                 <input
                   value={gymName}
                   onChange={(e) => setGymName(e.target.value)}
                   className="w-full rounded-xl bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none"
                 />
-              </div>
+              </motion.div>
             ) : (
-              <p className="text-sm font-semibold"><span className="text-amber-400">Gym Name :</span> <span className="text-white">{gymName}</span></p>
+              <p className="text-sm"><span className="text-amber-400">Gym Name :</span> <span className="text-white">{gymName}</span></p>
             )}
           </div>
-
-          <div>
-            <label className="block text-xs font-medium text-text-muted mb-1.5">Membership Plans</label>
-            {plansList.length === 0 ? (
-              <p className="text-sm text-text-muted">No plans created yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {plansList.map((plan) => (
-                  <div key={plan.id}>
-                    {editingPlanId === plan.id ? (
-                      <div className="rounded-lg bg-white/[0.03] p-3 space-y-3">
-                        <div className="flex gap-2">
-                          <div className="flex-1 space-y-1">
-                            <label className="text-xs text-text-muted">Name</label>
-                            <input
-                              value={editPlanName}
-                              onChange={(e) => setEditPlanName(e.target.value)}
-                              className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
-                            />
-                          </div>
-                          <div className="w-20 space-y-1">
-                            <label className="text-xs text-text-muted">Price</label>
-                            <input
-                              type="number"
-                              value={editPlanPrice}
-                              onChange={(e) => setEditPlanPrice(e.target.value)}
-                              className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
-                            />
-                          </div>
-                          <div className="w-18 space-y-1">
-                            <label className="text-xs text-text-muted">Months</label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={editPlanMonths}
-                              onChange={(e) => setEditPlanMonths(e.target.value)}
-                              className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
-                            />
-                          </div>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setEditingPlanId(null)}
-                            className="flex items-center gap-1 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-text-muted"
-                          >
-                            <X size={12} />
-                            Cancel
-                          </button>
-                          <button
-                            onClick={() => saveEditPlan(plan.id)}
-                            className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
-                          >
-                            <Check size={12} />
-                            Save
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-4 py-3">
-                        <Dumbbell size={16} className="text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-text-primary truncate">{plan.name}</p>
-                          <p className="text-xs text-text-muted">
-                            ₹{plan.price.toLocaleString("en-IN")} · {Math.round(plan.durationDays / 30)} months
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => startEditPlan(plan)}
-                            className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:text-primary hover:bg-primary/10"
-                          >
-                            <Pencil size={13} />
-                          </button>
-                          <button
-                            onClick={() => setDeletePlanId(plan.id)}
-                            className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              )}
-
-              <button
-                onClick={() => setShowCreatePlan(!showCreatePlan)}
-                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/[0.12] px-4 py-2.5 text-xs font-medium text-text-muted transition-all duration-200 hover:border-primary/30 hover:text-primary"
-              >
-                + Create Plan
-              </button>
-
-              {showCreatePlan && (
-                <div className="mt-2 rounded-lg bg-white/[0.03] p-3 space-y-3">
-                  <div className="flex gap-2">
-                    <div className="flex-1 space-y-1">
-                      <label className="text-xs text-text-muted">Name</label>
-                      <input
-                        value={newPlanName}
-                        onChange={(e) => setNewPlanName(e.target.value)}
-                        placeholder="e.g. Gold"
-                        className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
-                      />
-                    </div>
-                    <div className="w-20 space-y-1">
-                      <label className="text-xs text-text-muted">Price</label>
-                      <input
-                        type="number"
-                        value={newPlanPrice}
-                        onChange={(e) => setNewPlanPrice(e.target.value)}
-                        placeholder="0"
-                        className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
-                      />
-                    </div>
-                    <div className="w-18 space-y-1">
-                      <label className="text-xs text-text-muted">Months</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={newPlanMonths}
-                        onChange={(e) => setNewPlanMonths(e.target.value)}
-                        className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowCreatePlan(false)}
-                      className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-text-muted"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleCreatePlan}
-                      className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
-                    >
-                      Add Plan
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
+      </motion.div>
 
-      <div className="glass-card rounded-xl p-5 space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.1 }}
+        className="glass-card rounded-xl p-5"
+      >
+        <h2 className="text-lg font-semibold text-primary mb-3">Membership Plans</h2>
+        {plansList.length === 0 ? (
+          <p className="text-sm text-text-muted">No plans created yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {plansList.map((plan, i) => (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...springGentle, delay: 0.15 + i * 0.04 }}
+              >
+                {editingPlanId === plan.id ? (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="rounded-lg bg-white/[0.03] p-3 space-y-3"
+                  >
+                    <div className="flex gap-2">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-text-muted">Name</label>
+                        <input
+                          value={editPlanName}
+                          onChange={(e) => setEditPlanName(e.target.value)}
+                          className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
+                        />
+                      </div>
+                      <div className="w-20 space-y-1">
+                        <label className="text-xs text-text-muted">Price</label>
+                        <input
+                          type="number"
+                          value={editPlanPrice}
+                          onChange={(e) => setEditPlanPrice(e.target.value)}
+                          className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
+                        />
+                      </div>
+                      <div className="w-18 space-y-1">
+                        <label className="text-xs text-text-muted">Months</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={editPlanMonths}
+                          onChange={(e) => setEditPlanMonths(e.target.value)}
+                          className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setEditingPlanId(null)}
+                        className="flex items-center gap-1 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-text-muted"
+                      >
+                        <X size={12} />
+                        Cancel
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => saveEditPlan(plan.id)}
+                        className="flex items-center gap-1 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
+                      >
+                        <Check size={12} />
+                        Save
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-4 py-3">
+                    <Dumbbell size={16} className="text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">{plan.name}</p>
+                      <p className="text-xs text-text-muted">
+                        ₹{plan.price.toLocaleString("en-IN")} · {Math.round(plan.durationDays / 30)} months
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => startEditPlan(plan)}
+                        className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:text-primary hover:bg-primary/10"
+                      >
+                        <Pencil size={13} />
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setDeletePlanId(plan.id)}
+                        className="flex size-8 items-center justify-center rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 size={13} />
+                      </motion.button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={() => setShowCreatePlan(!showCreatePlan)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-white/[0.12] px-4 py-2.5 text-xs font-medium text-text-muted hover:border-primary/30 hover:text-primary transition-all"
+        >
+          + Create Plan
+        </motion.button>
+
+        <AnimatePresence>
+          {showCreatePlan && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ ...springGentle }}
+              className="mt-2 rounded-lg bg-white/[0.03] p-3 space-y-3 overflow-hidden"
+            >
+              <div className="flex gap-2">
+                <div className="flex-1 space-y-1">
+                  <label className="text-xs text-text-muted">Name</label>
+                  <input
+                    value={newPlanName}
+                    onChange={(e) => setNewPlanName(e.target.value)}
+                    placeholder="e.g. Gold"
+                    className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
+                  />
+                </div>
+                <div className="w-20 space-y-1">
+                  <label className="text-xs text-text-muted">Price</label>
+                  <input
+                    type="number"
+                    value={newPlanPrice}
+                    onChange={(e) => setNewPlanPrice(e.target.value)}
+                    placeholder="0"
+                    className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
+                  />
+                </div>
+                <div className="w-18 space-y-1">
+                  <label className="text-xs text-text-muted">Months</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newPlanMonths}
+                    onChange={(e) => setNewPlanMonths(e.target.value)}
+                    className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowCreatePlan(false)}
+                  className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-text-muted"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCreatePlan}
+                  className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-white"
+                >
+                  Add Plan
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.15 }}
+        className="glass-card rounded-xl p-5 space-y-4"
+      >
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
             <MapPin size={16} />
@@ -337,7 +391,8 @@ export default function SettingsClient({
             />
           </div>
         </div>
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           onClick={async () => {
             const lat = parseFloat((document.getElementById("gym-lat") as HTMLInputElement).value);
             const lng = parseFloat((document.getElementById("gym-lng") as HTMLInputElement).value);
@@ -348,14 +403,19 @@ export default function SettingsClient({
           className="rounded-xl bg-primary/10 px-4 py-2.5 text-xs font-medium text-primary hover:bg-primary/20 transition-all"
         >
           Save Location
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
-      <div className="glass-card rounded-xl p-5 space-y-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.2 }}
+        className="glass-card rounded-xl p-5 space-y-4"
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
             <HardDrive size={16} />
-            Backup & Restore
+            Backup &amp; Restore
           </h2>
         </div>
 
@@ -373,7 +433,9 @@ export default function SettingsClient({
         )}
 
         <div className="flex gap-3">
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             onClick={async () => {
               setBackingUp(true);
               setBackupError(null);
@@ -392,20 +454,22 @@ export default function SettingsClient({
               setBackingUp(false);
             }}
             disabled={backingUp}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-all hover:bg-primary/20 active:scale-[0.98] disabled:opacity-50 min-h-[44px]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 px-4 py-3 text-sm font-medium text-primary transition-all disabled:opacity-50 min-h-[44px]"
           >
             <Download size={16} />
             {backingUp ? "Exporting..." : "Export Backup"}
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
             onClick={() => fileRef.current?.click()}
             disabled={restoring}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 py-3 text-sm font-medium text-text-muted hover:text-text-primary active:scale-[0.98] disabled:opacity-50 min-h-[44px]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white/[0.06] px-4 py-3 text-sm font-medium text-text-muted hover:text-text-primary disabled:opacity-50 min-h-[44px]"
           >
             <Upload size={16} />
             {restoring ? "Restoring..." : "Restore Backup"}
-          </button>
+          </motion.button>
 
           <input
             ref={fileRef}
@@ -434,7 +498,7 @@ export default function SettingsClient({
           />
         </div>
         <p className="text-xs text-text-muted">Backup exports all data as JSON. Restore overwrites existing records.</p>
-      </div>
+      </motion.div>
 
       <ConfirmDialog
         open={deletePlanId !== null}

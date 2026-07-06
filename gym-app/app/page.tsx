@@ -19,7 +19,11 @@ export default function Home() {
 
     checkOnboardingStatus()
       .then((status) => {
-        if (status.needsGymName || status.needsPlans) {
+        if (status.role === null) {
+          router.replace("/onboarding");
+        } else if (status.role === "MEMBER") {
+          router.replace("/member");
+        } else if (status.needsGymName || status.needsPlans) {
           router.replace("/onboarding");
         } else {
           router.replace("/dashboard");

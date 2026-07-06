@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
+import { motion, AnimatePresence } from "motion/react";
 import { Check, Dumbbell, ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { checkOnboardingStatus, saveOwnerName, saveGymName, savePlan } from "@/lib/actions/onboarding";
 
 const STEPS = ["Welcome", "Your Name", "Gym Name", "Membership Plan"];
 
 type Plan = { name: string; price: string; months: string };
+
+const spring = { type: "spring" as const, stiffness: 300, damping: 30, mass: 0.9 };
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -17,6 +20,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [direction, setDirection] = useState(0);
 
   const [ownerName, setOwnerName] = useState("");
   const [gymName, setGymName] = useState("");
@@ -30,6 +34,10 @@ export default function OnboardingPage() {
       return;
     }
     checkOnboardingStatus().then((status) => {
+      if (status.role === "MEMBER") {
+        router.replace("/member");
+        return;
+      }
       if (!status.needsOwnerName && !status.needsGymName && !status.needsPlans) {
         router.replace("/dashboard");
         return;
@@ -71,6 +79,31 @@ export default function OnboardingPage() {
 
   function updatePlan(i: number, field: keyof Plan, value: string) {
     setPlans((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
+  }
+
+  function goNext() {
+    setError("");
+    if (step === 1 && !ownerName.trim()) {
+      setError("Please enter your name");
+      return;
+    }
+    if (step === 2 && !gymName.trim()) {
+      setError("Please enter a gym name");
+      return;
+    }
+    setDirection(1);
+    setStep((s) => s + 1);
+  }
+
+  function goBack() {
+    setError("");
+    setDirection(-1);
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  function signOutAndRedirect() {
+    signOut();
+    router.push("/sign-in");
   }
 
   if (!isLoaded || loading) {
@@ -133,190 +166,207 @@ export default function OnboardingPage() {
 
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
-            {step === 0 && (
-              <div className="animate-slide-up space-y-6">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                    Welcome!
-                  </h1>
-                  <p className="mt-2 text-sm text-text-secondary leading-relaxed">
-                    You&apos;re signed in as{" "}
-                    <span className="text-text-primary font-medium">
-                      {user?.emailAddresses?.[0]?.emailAddress}
-                    </span>
-                    .
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {step === 1 && (
-              <div className="animate-slide-up space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                    What&apos;s your name?
-                  </h1>
-                  <p className="mt-1.5 text-sm text-text-secondary">
-                    We&apos;ll use this to personalize your experience.
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">Your Name</label>
-                  <input
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    placeholder="e.g. John Doe"
-                    className="w-full rounded-xl bg-white/[0.04] px-4 py-3.5 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div className="animate-slide-up space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                    Name Your Gym
-                  </h1>
-                  <p className="mt-1.5 text-sm text-text-secondary">
-                    What&apos;s the name of your gym or fitness center?
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-text-primary">Gym Name</label>
-                  <input
-                    value={gymName}
-                    onChange={(e) => setGymName(e.target.value)}
-                    placeholder="e.g. Iron Forge Gym"
-                    className="w-full rounded-xl bg-white/[0.04] px-4 py-3.5 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
-                    autoFocus
-                  />
-                </div>
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="animate-slide-up space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                    Membership Plans
-                  </h1>
-                  <p className="mt-1.5 text-sm text-text-secondary">
-                    Add at least one membership plan to get started.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {plans.map((plan, i) => (
-                    <div key={i} className="glass-card rounded-xl p-4 animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
-                          Plan {i + 1}
-                        </p>
-                        {plans.length > 1 && (
-                          <button
-                            onClick={() => removePlan(i)}
-                            className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="flex-1 space-y-1.5">
-                          <label className="text-xs text-text-muted">Plan Name</label>
-                          <input
-                            value={plan.name}
-                            onChange={(e) => updatePlan(i, "name", e.target.value)}
-                            placeholder="e.g. Basic Monthly"
-                            className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
-                          />
-                        </div>
-                        <div className="w-28 space-y-1.5">
-                          <label className="text-xs text-text-muted">Price (₹)</label>
-                          <input
-                            type="number"
-                            value={plan.price}
-                            onChange={(e) => updatePlan(i, "price", e.target.value)}
-                            placeholder="499"
-                            className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
-                          />
-                        </div>
-                        <div className="w-24 space-y-1.5">
-                          <label className="text-xs text-text-muted">Months</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={plan.months}
-                            onChange={(e) => updatePlan(i, "months", e.target.value)}
-                            placeholder="3"
-                            className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
-                          />
-                        </div>
-                      </div>
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={step}
+                custom={direction}
+                initial={{ opacity: 0, x: direction > 0 ? 30 : -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction > 0 ? -30 : 30 }}
+                transition={{ ...spring }}
+              >
+                {step === 0 && (
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        Welcome!
+                      </h1>
+                      <p className="mt-2 text-sm text-text-secondary leading-relaxed">
+                        You&apos;re signed in as{" "}
+                        <span className="text-text-primary font-medium">
+                          {user?.emailAddresses?.[0]?.emailAddress}
+                        </span>
+                        .
+                      </p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
 
-                <button
-                  onClick={addPlan}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/[0.12] py-3.5 text-sm font-medium text-text-muted transition-all duration-200 hover:border-primary/30 hover:text-primary hover:bg-primary-subtle active:scale-[0.98]"
-                >
-                  <Plus size={16} />
-                  Add Another Plan
-                </button>
-              </div>
-            )}
+                {step === 1 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        What&apos;s your name?
+                      </h1>
+                      <p className="mt-1.5 text-sm text-text-secondary">
+                        We&apos;ll use this to personalize your experience.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-primary">Your Name</label>
+                      <input
+                        value={ownerName}
+                        onChange={(e) => setOwnerName(e.target.value)}
+                        placeholder="e.g. John Doe"
+                        className="w-full rounded-xl bg-white/[0.04] px-4 py-3.5 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        Name Your Gym
+                      </h1>
+                      <p className="mt-1.5 text-sm text-text-secondary">
+                        What&apos;s the name of your gym or fitness center?
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-text-primary">Gym Name</label>
+                      <input
+                        value={gymName}
+                        onChange={(e) => setGymName(e.target.value)}
+                        placeholder="e.g. Iron Forge Gym"
+                        className="w-full rounded-xl bg-white/[0.04] px-4 py-3.5 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        Membership Plans
+                      </h1>
+                      <p className="mt-1.5 text-sm text-text-secondary">
+                        Add at least one membership plan to get started.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {plans.map((plan, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ ...spring, delay: i * 0.06 }}
+                          className="glass-card rounded-xl p-4"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
+                              Plan {i + 1}
+                            </p>
+                            {plans.length > 1 && (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={() => removePlan(i)}
+                                className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                              >
+                                <Trash2 size={13} />
+                              </motion.button>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <div className="flex-1 space-y-1.5">
+                              <label className="text-xs text-text-muted">Plan Name</label>
+                              <input
+                                value={plan.name}
+                                onChange={(e) => updatePlan(i, "name", e.target.value)}
+                                placeholder="e.g. Basic Monthly"
+                                className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
+                              />
+                            </div>
+                            <div className="w-28 space-y-1.5">
+                              <label className="text-xs text-text-muted">Price (₹)</label>
+                              <input
+                                type="number"
+                                value={plan.price}
+                                onChange={(e) => updatePlan(i, "price", e.target.value)}
+                                placeholder="499"
+                                className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
+                              />
+                            </div>
+                            <div className="w-24 space-y-1.5">
+                              <label className="text-xs text-text-muted">Months</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={plan.months}
+                                onChange={(e) => updatePlan(i, "months", e.target.value)}
+                                placeholder="3"
+                                className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
+                              />
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={addPlan}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/[0.12] py-3.5 text-sm font-medium text-text-muted hover:border-primary/30 hover:text-primary hover:bg-primary-subtle"
+                    >
+                      <Plus size={16} />
+                      Add Another Plan
+                    </motion.button>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {error && (
-            <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
           <div className="mt-8 flex items-center justify-between gap-3">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
-                setError("");
                 if (step === 0) {
-                  signOut();
-                  router.push("/sign-in");
+                  signOutAndRedirect();
                 } else {
-                  setStep((s) => Math.max(0, s - 1));
+                  goBack();
                 }
               }}
-              className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-5 py-3 text-sm font-medium text-text-secondary transition-all duration-200 hover:text-text-primary active:scale-[0.97] min-h-[48px]"
+              className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-5 py-3 text-sm font-medium text-text-secondary hover:text-text-primary min-h-[48px]"
             >
               <ArrowLeft size={16} />
               {step === 0 ? "Sign Out" : "Back"}
-            </button>
+            </motion.button>
 
             {step < STEPS.length - 1 ? (
-              <button
-                onClick={() => {
-                  setError("");
-                  if (step === 1 && !ownerName.trim()) {
-                    setError("Please enter your name");
-                    return;
-                  }
-                  if (step === 2 && !gymName.trim()) {
-                    setError("Please enter a gym name");
-                    return;
-                  }
-                  setStep((s) => s + 1);
-                }}
-                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:opacity-90 active:scale-[0.97] min-h-[48px] shadow-lg shadow-primary/20"
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={goNext}
+                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white shadow-lg shadow-primary/20 min-h-[48px]"
               >
                 Continue
                 <ArrowRight size={16} />
-              </button>
+              </motion.button>
             ) : (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={handleFinish}
                 disabled={saving || plans.every((p) => !p.name.trim() || !p.price || !p.months)}
-                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white transition-all duration-200 hover:opacity-90 active:scale-[0.97] disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
+                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white shadow-lg shadow-primary/20 disabled:opacity-50 min-h-[48px]"
               >
                 {saving ? (
                   <>
@@ -329,7 +379,7 @@ export default function OnboardingPage() {
                     <Check size={16} />
                   </>
                 )}
-              </button>
+              </motion.button>
             )}
           </div>
         </div>

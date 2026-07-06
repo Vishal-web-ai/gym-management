@@ -1,35 +1,26 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { logActivity } from "@/lib/actions/activity";
 
-let db: any;
+export async function getPlans(uid?: string) {
+  const user = await requireAdmin();
+  const resolvedUserId = uid ?? user.gymOwnerId;
 
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-export async function getPlans() {
-  const { userId } = await auth();
-  if (!userId) return [];
-
-  return prisma().plan.findMany({
-    where: { userId },
+  return prisma.plan.findMany({
+    where: { userId: resolvedUserId },
     orderBy: { price: "asc" },
   });
 }
 
 export async function createPlan(name: string, price: number, durationDays: number) {
-  await requireAdmin();
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
 
-  const plan = await prisma().plan.create({
-    data: { userId, name, price, durationDays },
+  const plan = await prisma.plan.create({
+    data: { userId: ownerId, name, price, durationDays },
   });
 
   logActivity("plan.created", JSON.stringify({ id: plan.id, name }));
@@ -38,12 +29,11 @@ export async function createPlan(name: string, price: number, durationDays: numb
 }
 
 export async function updatePlan(id: string, name: string, price: number, durationDays: number) {
-  await requireAdmin();
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
 
-  await prisma().plan.update({
-    where: { id, userId },
+  await prisma.plan.update({
+    where: { id, userId: ownerId },
     data: { name, price, durationDays },
   });
 
@@ -52,11 +42,10 @@ export async function updatePlan(id: string, name: string, price: number, durati
 }
 
 export async function deletePlan(id: string) {
-  await requireAdmin();
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
 
-  await prisma().plan.delete({ where: { id, userId } });
+  await prisma.plan.delete({ where: { id, userId: ownerId } });
 
   logActivity("plan.deleted", JSON.stringify({ id }));
   revalidatePath("/settings");

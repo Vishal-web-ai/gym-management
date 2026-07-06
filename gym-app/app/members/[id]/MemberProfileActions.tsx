@@ -7,10 +7,12 @@ export default function MemberProfileActions({
   phone,
   memberName,
   status,
+  gymName,
 }: {
   phone: string;
   memberName: string;
   status: string;
+  gymName?: string;
 }) {
   return (
     <div className="mt-4 flex gap-2">
@@ -22,7 +24,7 @@ export default function MemberProfileActions({
         WhatsApp
       </button>
       <button
-        onClick={() => openWhatsApp(phone, reminderMessage(memberName, status))}
+        onClick={() => openWhatsApp(phone, reminderMessage(memberName, status, gymName))}
         className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-500/10 py-2.5 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-500/20 min-h-[44px]"
       >
         <MessageCircleMore size={16} />

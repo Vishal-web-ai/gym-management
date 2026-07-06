@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Tags } from "lucide-react";
+import { requireAdminPage } from "@/lib/auth";
 import {
   getMemberById,
   getPaymentsByMemberId,
 } from "@/lib/actions/members";
+import { getGymConfig } from "@/lib/actions/settings";
 import { getPlans } from "@/lib/actions/plans";
 import MemberDetailClient from "./MemberDetailClient";
 import MemberQuickActions from "./MemberQuickActions";
@@ -50,17 +51,19 @@ export default async function MemberDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireAdminPage();
   const { id } = await params;
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
+  const userId = user.gymOwnerId;
   let member: MemberDetail | null = null;
   let payments: MemberPayment[] = [];
   let plans: MemberPlan[] = [];
+  let gymName: string | undefined;
   try {
-    [member, payments, plans] = await Promise.all([
+    [member, payments, plans, gymName] = await Promise.all([
       getMemberById(id),
       getPaymentsByMemberId(id),
-      getPlans(),
+      getPlans(userId),
+      getGymConfig(userId).then((c) => c?.gymName ?? undefined),
     ]);
   } catch {
     // Database not configured yet
@@ -71,7 +74,7 @@ export default async function MemberDetailPage({
   const memberName = member.firstName;
 
   return (
-    <div className="space-y-4 p-4 animate-fade-in">
+    <div className="space-y-4 p-3 animate-fade-in">
       <div className="flex items-center justify-between">
         <Link
           href="/members"
@@ -188,6 +191,7 @@ export default async function MemberDetailPage({
           memberName={memberName}
           status={member.status}
           gymUserId={userId}
+          gymName={gymName}
         />
       </div>
 
@@ -198,6 +202,7 @@ export default async function MemberDetailPage({
           payments={payments}
           plans={plans}
           gymUserId={userId}
+          gymName={gymName}
         />
       </div>
     </div>

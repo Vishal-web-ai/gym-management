@@ -1,0 +1,45 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["gym-app/AGENTS.md"],
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp"],
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest"],
+      "enabled": true
+    },
+    "semgrep": {
+      "type": "local",
+      "command": ["semgrep", "mcp"],
+      "enabled": true
+    },
+    "snyk": {
+      "type": "local",
+      "command": ["snyk", "mcp", "--experimental"],
+      "enabled": true
+    },
+    "lighthouse": {
+      "type": "local",
+      "command": ["npx", "-y", "lighthouse-mcp"],
+      "enabled": true
+    },
+    "codeql": {
+      "type": "local",
+      "command": ["npx", "-y", "codeql-development-mcp-server"],
+      "enabled": true
+    },
+    "zap": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-io-github-pierre3-zap-mcp"],
+      "env": {
+        "ZAP_BASE_URL": "http://localhost:8090",
+        "ZAP_API_KEY": ""
+      },
+      "enabled": false
+    }
+  }
+}

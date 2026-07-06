@@ -1,27 +1,16 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+import { getDistance } from "@/lib/geo";
 import { logActivity } from "@/lib/actions/activity";
 
-let db: any;
-
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-async function getUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
-}
-
 export async function getMembersForAttendance() {
-  const userId = await getUserId();
-  return prisma().member.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  return prisma.member.findMany({
+    where: { userId: ownerId },
     orderBy: { firstName: "asc" },
     select: {
       id: true,
@@ -33,9 +22,10 @@ export async function getMembersForAttendance() {
 }
 
 export async function checkIn(memberId: string) {
-  const userId = await getUserId();
-  const member = await prisma().member.findUnique({
-    where: { id: memberId, userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const member = await prisma.member.findUnique({
+    where: { id: memberId, userId: ownerId },
   });
   if (!member) throw new Error("Member not found");
 
@@ -46,8 +36,8 @@ export async function checkIn(memberId: string) {
     if (new Date() > graceEnd) throw new Error("Membership has expired");
   }
 
-  const record = await prisma().attendance.create({
-    data: { userId, memberId, memberName: member.firstName },
+  const record = await prisma.attendance.create({
+    data: { userId: ownerId, memberId, memberName: member.firstName },
   });
 
   logActivity("attendance.checkin", JSON.stringify({ memberId, name: member.firstName }));
@@ -55,15 +45,16 @@ export async function checkIn(memberId: string) {
   return record;
 }
 
-export async function getTodayCheckIns() {
-  const userId = await getUserId();
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+export async function getCheckInsByDate(date: string) {
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const d = new Date(date);
+  const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const endOfDay = new Date(startOfDay.getTime() + 86400000);
 
-  return prisma().attendance.findMany({
+  return prisma.attendance.findMany({
     where: {
-      userId,
+      userId: ownerId,
       checkInTime: { gte: startOfDay, lt: endOfDay },
     },
     orderBy: { checkInTime: "desc" },
@@ -73,30 +64,15 @@ export async function getTodayCheckIns() {
   });
 }
 
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; // metres
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) *
-    Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // in metres
-}
-
 export async function getGymConfigForAttendance() {
-  const userId = await getUserId();
-  const config = await prisma().gymConfig.findUnique({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const config = await prisma.gymConfig.findUnique({
+    where: { userId: ownerId },
   });
   return {
-    userId,
-    gymName: config?.gymName ?? "Iron Forge Gym",
+    userId: ownerId,
+    gymName: config?.gymName,
     gymLat: config?.gymLat,
     gymLng: config?.gymLng,
     gymRadius: config?.gymRadius,
@@ -104,7 +80,7 @@ export async function getGymConfigForAttendance() {
 }
 
 export async function getGymConfigPublic(gymId: string) {
-  return prisma().gymConfig.findUnique({
+  return prisma.gymConfig.findUnique({
     where: { userId: gymId },
     select: {
       gymName: true,
@@ -121,13 +97,14 @@ export async function checkInByPhone(
   memberLat?: number,
   memberLng?: number
 ) {
-  // Find member in this specific gym
-  const member = await prisma().member.findFirst({
-    where: {
-      phone: phone.trim(),
-      userId: gymId,
-    },
-  });
+  const [member, config] = await Promise.all([
+    prisma.member.findFirst({
+      where: { phone: phone.trim(), userId: gymId },
+    }),
+    prisma.gymConfig.findUnique({
+      where: { userId: gymId },
+    }),
+  ]);
 
   if (!member) {
     throw new Error("Member not found with this phone number");
@@ -143,11 +120,6 @@ export async function checkInByPhone(
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
     if (new Date() > graceEnd) throw new Error("Membership has expired");
   }
-
-  // Check Location if configured
-  const config = await prisma().gymConfig.findUnique({
-    where: { userId: gymId },
-  });
 
   if (config && config.gymLat !== null && config.gymLng !== null && config.gymRadius !== null) {
     if (memberLat === undefined || memberLng === undefined) {
@@ -166,7 +138,7 @@ export async function checkInByPhone(
     }
   }
 
-  const record = await prisma().attendance.create({
+  const record = await prisma.attendance.create({
     data: {
       userId: gymId,
       memberId: member.id,

@@ -15,6 +15,7 @@ import {
   Check,
   type LucideIcon,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import Select from "@/components/Select";
 import Modal from "@/components/Modal";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -23,7 +24,6 @@ import WhatsAppConfirmModal from "@/components/WhatsAppConfirmModal";
 import { logPayment, freezeMember, unfreezeMember } from "@/lib/actions/members";
 import { formatError } from "@/lib/actions/helpers";
 import { openWhatsApp, receiptMessage } from "@/lib/whatsapp";
-import { downloadReceiptPdf } from "@/lib/pdf";
 
 type ApiMember = {
   id: string;
@@ -52,18 +52,23 @@ const modeIcons: Record<string, LucideIcon> = {
 const tabs = ["Payments", "Freeze"] as const;
 type Tab = (typeof tabs)[number];
 
+const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
+const springBtn = { type: "spring" as const, stiffness: 300, damping: 20 };
+
 export default function MemberDetailClient({
   memberId,
   member: initialMember,
   payments: initialPayments,
   plans = [],
   gymUserId,
+  gymName,
 }: {
   memberId: string;
   member?: ApiMember;
   payments?: ApiPayment[];
   plans?: { id: string; name: string; price: number; durationDays: number }[];
   gymUserId: string;
+  gymName?: string;
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("Payments");
@@ -142,7 +147,7 @@ export default function MemberDetailClient({
     if (!successOverlay) return;
     const { memberName, amount, mode, phone, createdAt, memberId: mid } = successOverlay;
     const link = `${window.location.origin}/member?memberId=${mid}&gym=${gymUserId}`;
-    openWhatsApp(phone, receiptMessage(memberName, amount, mode, createdAt, undefined, link));
+    openWhatsApp(phone, receiptMessage(memberName, amount, mode, createdAt, gymName, link));
     setSuccessOverlay(null);
     setShowPayConfirm(false);
   }
@@ -190,31 +195,44 @@ export default function MemberDetailClient({
 
   return (
     <>
-      <div className="glass-card flex rounded-xl p-1">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.15 }}
+        className="glass-card flex rounded-xl p-1"
+      >
         {tabs.map((tab) => (
-          <button
+          <motion.button
             key={tab}
+            whileTap={{ scale: 0.97 }}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all duration-200 min-h-[44px] ${
+            className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors duration-200 min-h-[44px] ${
               activeTab === tab
                 ? "bg-primary text-white shadow-lg shadow-primary/20"
                 : "text-text-muted"
             }`}
           >
             {tab}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       {activeTab === "Payments" && (
-        <div className="space-y-3 animate-slide-up delay-1">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle, delay: 0.2 }}
+          className="space-y-3"
+        >
           {hasPaymentThisMonth ? (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-2">
               <CheckCircle size={16} />
               Payment already logged this month
             </div>
           ) : (
-            <button
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setShowPayForm(true);
                 setPayPlanId("");
@@ -224,7 +242,7 @@ export default function MemberDetailClient({
             >
               <span className="flex size-6 items-center justify-center rounded-md bg-primary/10 text-xs text-primary">+</span>
               Log Payment
-            </button>
+            </motion.button>
           )}
 
           <Modal open={showPayForm} onClose={() => setShowPayForm(false)}>
@@ -253,33 +271,42 @@ export default function MemberDetailClient({
                       </span>
                       <ChevronDown size={14} className={`shrink-0 text-text-muted transition-transform duration-200 ${payPlanOpen ? "rotate-180" : ""}`} />
                     </button>
-                    {payPlanOpen && (
-                      <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl animate-scale-in">
-                        {plans.map((p) => {
-                          const selected = payPlanId === p.id;
-                          return (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => {
-                                setPayPlanId(p.id);
-                                setPayAmount(String(p.price));
-                                setPayPlanOpen(false);
-                              }}
-                              className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-all duration-200 ${
-                                selected
-                                  ? "bg-primary/15 text-primary"
-                                  : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
-                              }`}
-                            >
-                              <span className="flex-1 text-left">{p.name}</span>
-                              <span className="text-text-muted">₹{p.price.toLocaleString("en-IN")}</span>
-                              {selected && <Check size={14} className="shrink-0 text-primary" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {payPlanOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                          className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl"
+                        >
+                          {plans.map((p) => {
+                            const selected = payPlanId === p.id;
+                            return (
+                              <motion.button
+                                key={p.id}
+                                type="button"
+                                whileHover={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+                                onClick={() => {
+                                  setPayPlanId(p.id);
+                                  setPayAmount(String(p.price));
+                                  setPayPlanOpen(false);
+                                }}
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                                  selected
+                                    ? "bg-primary/15 text-primary"
+                                    : "text-text-secondary hover:text-text-primary"
+                                }`}
+                              >
+                                <span className="flex-1 text-left">{p.name}</span>
+                                <span className="text-text-muted">₹{p.price.toLocaleString("en-IN")}</span>
+                                {selected && <Check size={14} className="shrink-0 text-primary" />}
+                              </motion.button>
+                            );
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     <input type="hidden" name="planId" value={payPlanId} required />
                     <input type="hidden" name="endDate" value={calculateEndDate(payPlanId)} />
                   </div>
@@ -299,10 +326,14 @@ export default function MemberDetailClient({
                   />
                 </div>
                 {payPlanId && (
-                  <p className="text-xs font-medium text-amber-400/90 px-1 flex items-center gap-1.5">
+                  <motion.p
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-xs font-medium text-amber-400/90 px-1 flex items-center gap-1.5"
+                  >
                     <span className="inline-block size-1.5 rounded-full bg-amber-400/60" />
                     Membership ends {new Date(calculateEndDate(payPlanId)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                  </p>
+                  </motion.p>
                 )}
                 <Select
                   name="mode"
@@ -315,108 +346,120 @@ export default function MemberDetailClient({
                   ]}
                 />
                 <div className="flex gap-2 pt-1">
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     type="submit"
                     disabled={payPending}
-                    className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-white transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+                    className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-white disabled:opacity-50 min-h-[48px]"
                   >
                     {payPending ? "Saving..." : "Record Payment"}
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     type="button"
                     onClick={() => setShowPayForm(false)}
                     className="rounded-lg bg-white/[0.06] px-4 py-3 text-sm text-text-muted min-h-[48px]"
                   >
                     Cancel
-                  </button>
+                  </motion.button>
                 </div>
               </form>
             </div>
           </Modal>
 
           {payments.length === 0 && (
-            <div className="glass-card rounded-xl p-6 text-center text-sm text-text-secondary">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ ...springGentle }}
+              className="glass-card rounded-xl p-6 text-center text-sm text-text-secondary"
+            >
               No payments recorded yet.
-            </div>
+            </motion.div>
           )}
-          {payments.map((payment) => {
-            const ModeIcon = modeIcons[payment.mode] || modeIcons.Cash;
-            return (
-              <div
-                key={payment.id}
-                className="glass-card flex items-center gap-4 rounded-xl p-4"
-              >
-                <div
-                  className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${
-                    payment.status === "Paid"
-                      ? "bg-emerald-500/10 text-emerald-400"
-                      : "bg-red-500/10 text-red-400"
-                  }`}
+          <AnimatePresence mode="popLayout">
+            {payments.map((payment, i) => {
+              const ModeIcon = modeIcons[payment.mode] || modeIcons.Cash;
+              return (
+                <motion.div
+                  key={payment.id}
+                  layout
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ ...springGentle, delay: 0.2 + i * 0.04 }}
+                  className="glass-card flex items-center gap-4 rounded-xl p-4"
                 >
-                  {payment.status === "Paid" ? (
-                    <CheckCircle size={22} />
-                  ) : (
-                    <XCircle size={22} />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-text-primary">
-                    <IndianRupee size={14} className="inline -ml-0.5 mr-0.5" />
-                    {payment.amount.toLocaleString("en-IN")}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-text-muted">
-                    <span className="flex items-center gap-1">
-                      <ModeIcon size={13} />
-                      {payment.mode}
-                    </span>
-                    <span>
-                      {new Date(payment.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      const link = `${window.location.origin}/member?memberId=${memberId}&gym=${gymUserId}`;
-                      openWhatsApp(
-                        member.phone,
-                        receiptMessage(memberName, payment.amount, payment.mode, payment.createdAt.toString(), undefined, link),
-                      );
-                    }}
-                    className="flex items-center gap-1.5 rounded-lg bg-secondary/10 px-2.5 py-1.5 text-xs font-medium text-secondary"
-                  >
-                    Send Receipt
-                  </button>
-                  <button
-                    onClick={() =>
-                      downloadReceiptPdf(memberName, payment.amount, payment.mode, payment.createdAt.toString())
-                    }
-                    className="flex items-center gap-1.5 rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary"
-                  >
-                    PDF
-                  </button>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  <div
+                    className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${
                       payment.status === "Paid"
                         ? "bg-emerald-500/10 text-emerald-400"
                         : "bg-red-500/10 text-red-400"
                     }`}
                   >
-                    {payment.status}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    {payment.status === "Paid" ? (
+                      <CheckCircle size={22} />
+                    ) : (
+                      <XCircle size={22} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-text-primary">
+                      <IndianRupee size={14} className="inline -ml-0.5 mr-0.5" />
+                      {payment.amount.toLocaleString("en-IN")}
+                    </p>
+                    <div className="mt-0.5 flex items-center gap-3 text-xs text-text-muted">
+                      <span className="flex items-center gap-1">
+                        <ModeIcon size={13} />
+                        {payment.mode}
+                      </span>
+                      <span>
+                        {new Date(payment.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        const link = `${window.location.origin}/member?memberId=${memberId}&gym=${gymUserId}`;
+                        openWhatsApp(
+                          member.phone,
+                          receiptMessage(memberName, payment.amount, payment.mode, payment.createdAt.toString(), gymName, link),
+                        );
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-secondary/10 px-2.5 py-1.5 text-xs font-medium text-secondary"
+                    >
+                      Send Receipt
+                    </motion.button>
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        payment.status === "Paid"
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "bg-red-500/10 text-red-400"
+                      }`}
+                    >
+                      {payment.status}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
       )}
 
       {activeTab === "Freeze" && (
-        <div className="glass-card space-y-3 rounded-xl p-5 animate-slide-up delay-1">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle, delay: 0.2 }}
+          className="glass-card space-y-3 rounded-xl p-5"
+        >
           <h3 className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
             {member.status === "Frozen" ? "Unfreeze Membership" : "Freeze Membership"}
           </h3>
@@ -434,10 +477,12 @@ export default function MemberDetailClient({
           )}
 
           <form action={freezeDispatch}>
-            <button
+            <motion.button
               type="submit"
               disabled={freezePending}
-              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-50 min-h-[48px] ${
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-medium disabled:opacity-50 min-h-[48px] ${
                 member.status === "Frozen"
                   ? "bg-green-500/10 text-green-400"
                   : "bg-cyan-500/10 text-cyan-400"
@@ -449,9 +494,9 @@ export default function MemberDetailClient({
                 : member.status === "Frozen"
                   ? "Unfreeze Membership"
                   : "Freeze Membership"}
-            </button>
+            </motion.button>
           </form>
-        </div>
+        </motion.div>
       )}
 
       {successOverlay && !showPayConfirm && (

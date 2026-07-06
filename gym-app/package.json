@@ -17,21 +17,26 @@
     "@neondatabase/serverless": "^1.1.0",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@tanstack/react-query": "^5.101.2",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.4.2",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.22.0",
+    "motion": "^12.42.2",
     "next": "16.2.9",
-    "prisma": "^7.8.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"
   },
+  "overrides": {
+    "@hono/node-server": "1.19.13",
+    "postcss": "8.5.10"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",
-    "@types/jspdf": "^1.3.3",
     "@types/node": "^20",
+    "prisma": "^7.8.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

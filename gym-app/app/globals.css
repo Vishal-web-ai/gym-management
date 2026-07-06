@@ -202,3 +202,502 @@ select {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(168, 162, 158, 0.3);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Clerk UserButton (popover dropdown) ── */
+
+.cl-avatarBox {
+  width: 2.25rem !important;
+  height: 2.25rem !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.15) !important;
+  transition: all 0.2s ease !important;
+}
+.cl-avatarBox:hover {
+  box-shadow: 0 0 0 1px rgba(249,115,22,0.5) !important;
+}
+.cl-avatarImage {
+  border-radius: 9999px !important;
+}
+
+.cl-userButtonPopoverCard {
+  background: #1C0E06 !important;
+  border: 1px solid rgba(249,115,22,0.25) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6), 0 0 20px -8px rgba(249,115,22,0.15) !important;
+  width: 340px !important;
+  overflow: hidden !important;
+}
+.cl-userButtonPopoverMain {
+  padding: 0 !important;
+}
+
+.cl-userPreview {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  padding: 1.5rem 1.5rem 1rem !important;
+}
+.cl-userPreviewAvatarContainer {
+  margin-bottom: 1rem !important;
+}
+.cl-userPreviewAvatarBox {
+  width: 4rem !important;
+  height: 4rem !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.3) !important;
+}
+.cl-userPreviewAvatarImage {
+  border-radius: 9999px !important;
+}
+.cl-userPreviewTextContainer {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.125rem !important;
+}
+.cl-userPreviewMainIdentifier {
+  color: #F97316 !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+}
+.cl-userPreviewSecondaryIdentifier {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+  text-align: center !important;
+}
+
+.cl-userButtonPopoverActions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+  padding: 0.5rem 0.75rem 0.75rem !important;
+  border-top: 1px solid rgba(249,115,22,0.15) !important;
+}
+
+.cl-userButtonPopoverActionButton {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  width: 100% !important;
+  padding: 0.625rem 1rem !important;
+  border-radius: 0.75rem !important;
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+.cl-userButtonPopoverActionButton:hover {
+  background: rgba(249,115,22,0.1) !important;
+  color: #F97316 !important;
+}
+
+.cl-userButtonPopoverActionButtonIconBox {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: currentColor !important;
+  transition: color 0.2s ease !important;
+}
+.cl-userButtonPopoverActionButtonIcon {
+  color: currentColor !important;
+  transition: color 0.2s ease !important;
+}
+
+.cl-userButtonPopoverFooter {
+  display: none !important;
+}
+
+/* ── Clerk UserProfile (modal) ── */
+
+.cl-card {
+  background: #1C0E06 !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 20px -8px rgba(249,115,22,0.12) !important;
+  border: 1px solid rgba(249,115,22,0.25) !important;
+}
+.cl-navbar {
+  background: #140A04 !important;
+  border-right: 1px solid rgba(249,115,22,0.15) !important;
+}
+.cl-navbarButton {
+  color: #FB923C !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+.cl-navbarButton:hover {
+  color: #F97316 !important;
+  background: rgba(249,115,22,0.1) !important;
+}
+.cl-navbarButtonIcon {
+  color: currentColor !important;
+}
+.cl-navbarButtonText {
+  color: currentColor !important;
+}
+.cl-headerTitle {
+  color: #F97316 !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+.cl-headerSubtitle {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+}
+.cl-formButtonPrimary {
+  background: #F97316 !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 10px 15px -3px rgba(249,115,22,0.2) !important;
+  transition: all 0.2s ease !important;
+}
+.cl-formButtonPrimary:hover {
+  background: #EA580C !important;
+}
+.cl-formFieldInput {
+  background: #140A04 !important;
+  border: 1px solid rgba(249,115,22,0.15) !important;
+  color: #FB923C !important;
+  border-radius: 0.75rem !important;
+  padding: 0.625rem 1rem !important;
+  font-size: 0.875rem !important;
+  transition: all 0.2s ease !important;
+}
+.cl-formFieldInput::placeholder {
+  color: #D97706 !important;
+}
+.cl-formFieldInput:focus {
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.4) !important;
+  border-color: rgba(249,115,22,0.5) !important;
+}
+.cl-formFieldLabel {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+.cl-formFieldAction {
+  color: #F97316 !important;
+  font-size: 0.875rem !important;
+  transition: color 0.2s ease !important;
+}
+.cl-formFieldAction:hover {
+  color: #EA580C !important;
+}
+.cl-profileSectionTitle {
+  color: #F97316 !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+.cl-profileSectionContent {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+}
+.cl-profileSectionPrimaryButton {
+  color: #F97316 !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: color 0.2s ease !important;
+}
+.cl-profileSectionPrimaryButton:hover {
+  color: #EA580C !important;
+}
+.cl-modalBackdrop {
+  background: rgba(0,0,0,0.7) !important;
+  backdrop-filter: blur(4px) !important;
+}
+.cl-modalCloseButton {
+  color: #FB923C !important;
+  transition: color 0.2s ease !important;
+}
+.cl-modalCloseButton:hover {
+  color: #F97316 !important;
+}
+.cl-pageScrollBox {
+  padding: 1.5rem !important;
+}
+.cl-footer {
+  background: #140A04 !important;
+  border-top: 1px solid rgba(249,115,22,0.15) !important;
+}
+.cl-modalContent {
+  background: #1C0E06 !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 20px -8px rgba(249,115,22,0.12) !important;
+  border: 1px solid rgba(249,115,22,0.25) !important;
+}
+.cl-footerActionLink {
+  color: #F97316 !important;
+  font-size: 0.875rem !important;
+  transition: color 0.2s ease !important;
+}
+.cl-footerActionLink:hover {
+  color: #EA580C !important;
+}
+.cl-alert {
+  border-radius: 0.75rem !important;
+  background: rgba(249,115,22,0.1) !important;
+  border: 1px solid rgba(249,115,22,0.25) !important;
+}
+.cl-alertText {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+}
+.cl-dividerLine {
+  background: rgba(249,115,22,0.15) !important;
+}
+.cl-dividerText {
+  color: #FB923C !important;
+  font-size: 0.75rem !important;
+}
+
+/* ── Mobile & fallback text colors ── */
+
+.cl-navbarMobileMenuButton {
+  color: #FB923C !important;
+  transition: color 0.2s ease !important;
+}
+.cl-navbarMobileMenuButton:hover {
+  color: #F97316 !important;
+}
+.cl-navbarMobileMenuButtonIcon {
+  color: currentColor !important;
+}
+.cl-navbarMobileMenuRow {
+  background: #140A04 !important;
+  border-bottom: 1px solid rgba(249,115,22,0.15) !important;
+}
+
+.cl-userButtonOuterIdentifier {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+}
+
+.cl-userButtonPopoverCustomItemButton {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+.cl-userButtonPopoverCustomItemButton:hover {
+  color: #F97316 !important;
+  background: rgba(249,115,22,0.1) !important;
+}
+
+.cl-formFieldErrorText {
+  color: #EF4444 !important;
+  font-size: 0.75rem !important;
+}
+.cl-formFieldWarningText {
+  color: #F97316 !important;
+  font-size: 0.75rem !important;
+}
+.cl-formFieldSuccessText {
+  color: #10B981 !important;
+  font-size: 0.75rem !important;
+}
+.cl-formFieldHintText {
+  color: #D97706 !important;
+  font-size: 0.75rem !important;
+}
+.cl-formFieldInfoText {
+  color: #FB923C !important;
+  font-size: 0.75rem !important;
+}
+.cl-formFieldRadioLabel {
+  color: #FB923C !important;
+}
+.cl-formFieldRadioLabelTitle {
+  color: #F97316 !important;
+  font-weight: 500 !important;
+}
+.cl-formFieldRadioLabelDescription {
+  color: #D97706 !important;
+  font-size: 0.75rem !important;
+}
+
+.cl-badge {
+  color: #F97316 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}
+.cl-notificationBadge {
+  color: #FAFAF9 !important;
+  background: #F97316 !important;
+}
+
+.cl-spinner {
+  color: #F97316 !important;
+}
+
+/* ── Clerk SignIn / SignUp page ── */
+
+.cl-rootBox {
+  width: 100% !important;
+  max-width: 24rem !important;
+  margin-top: 5em !important;
+}
+
+.cl-rootBox .cl-cardBox {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+}
+
+.cl-rootBox .cl-card {
+  background: #1C0E06 !important;
+  border: 1px solid #F97316 !important;
+  border-radius: 1rem !important;
+  margin: 0 !important;
+}
+
+.cl-rootBox .cl-headerTitle {
+  color: #F97316 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+.cl-rootBox .cl-headerSubtitle {
+  color: #FB923C !important;
+}
+
+.cl-rootBox .cl-formFieldLabel {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.cl-rootBox .cl-formFieldInput {
+  background: #140A04 !important;
+  border: 1px solid rgba(249,115,22,0.15) !important;
+  color: #FB923C !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.cl-rootBox .cl-formFieldInput::placeholder {
+  color: #D97706 !important;
+}
+
+.cl-rootBox .cl-formFieldInput:focus {
+  box-shadow: 0 0 0 2px rgba(249,115,22,0.4) !important;
+  border-color: rgba(249,115,22,0.5) !important;
+}
+
+.cl-rootBox .cl-formButtonPrimary {
+  background: #F97316 !important;
+  color: white !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 10px 15px -3px rgba(249,115,22,0.2) !important;
+}
+
+.cl-rootBox .cl-formButtonPrimary:hover {
+  background: #EA580C !important;
+}
+
+.cl-rootBox .cl-dividerLine {
+  background: rgba(249,115,22,0.15) !important;
+}
+
+.cl-rootBox .cl-dividerText {
+  color: #FB923C !important;
+}
+
+.cl-rootBox .cl-socialButtonsBlockButton {
+  background: transparent !important;
+  border: 1px solid rgba(249,115,22,0.15) !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+  color: #FB923C !important;
+}
+
+.cl-rootBox .cl-socialButtonsBlockButton:hover {
+  background: rgba(249,115,22,0.1) !important;
+}
+
+.cl-rootBox .cl-socialButtonsBlockButtonText {
+  color: #FB923C !important;
+  font-weight: 500 !important;
+}
+
+.cl-rootBox .cl-footer {
+  margin-top: 0 !important;
+  background: transparent !important;
+}
+
+.cl-rootBox .cl-badge,
+.cl-rootBox [class*="badge"] {
+  display: none !important;
+}
+
+.cl-rootBox .cl-alert {
+  border-radius: 0.75rem !important;
+}
+
+.cl-rootBox .cl-alertText {
+  color: #FB923C !important;
+  font-size: 0.875rem !important;
+}
+
+.cl-rootBox .cl-identityPreviewText {
+  color: #FB923C !important;
+}
+
+.cl-rootBox .cl-identityPreviewEditButton {
+  color: #F97316 !important;
+}
+
+.cl-rootBox .cl-formFieldAction {
+  color: #F97316 !important;
+}
+
+.cl-rootBox .cl-formFieldAction:hover {
+  color: #EA580C !important;
+}
+
+.cl-buttonArrowIcon {
+  color: #D97706 !important;
+}
+
+.cl-tooltip {
+  background: #1C0E06 !important;
+  border: 1px solid rgba(249,115,22,0.25) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+.cl-tooltipContent {
+  color: #F97316 !important;
+  font-size: 0.75rem !important;
+}
+.cl-tooltipText {
+  color: #FB923C !important;
+}

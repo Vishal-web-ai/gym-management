@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Building,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { getGymConfigPublic, checkInByPhone } from "@/lib/actions/attendance";
 
 type GymConfig = {
@@ -137,33 +138,56 @@ function CheckInContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-4 text-center">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-4 text-center"
+      >
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="mt-4 text-sm text-text-muted">Loading Gym Attendance Portal...</p>
-      </div>
+      </motion.div>
     );
   }
 
   if (error && !gymConfig) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-red-500">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+        className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-6 text-center"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.1 }}
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-red-500"
+        >
           <AlertTriangle size={32} />
-        </div>
+        </motion.div>
         <h1 className="mt-6 text-xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
           Invalid Check-In
         </h1>
         <p className="mt-2 text-sm text-text-muted max-w-xs">{error}</p>
-      </div>
+      </motion.div>
     );
   }
 
   if (checkInResult) {
     const isOverdue = checkInResult.status === "Overdue";
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#080E1A] px-4 py-8">
-        <div
-          className={`w-full max-w-sm rounded-3xl border p-8 text-center shadow-2xl animate-scale-in ${
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex min-h-screen flex-col items-center justify-center bg-[#080E1A] px-4 py-8"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 250, damping: 25, mass: 0.9 }}
+          className={`w-full max-w-sm rounded-3xl border p-8 text-center shadow-2xl ${
             isOverdue
               ? "border-amber-500/30 bg-amber-500/[0.02]"
               : "border-emerald-500/30 bg-emerald-500/[0.02]"
@@ -171,7 +195,10 @@ function CheckInContent() {
         >
           {/* Success Check Ring */}
           <div className="flex justify-center">
-            <div
+            <motion.div
+              initial={{ scale: 0, rotate: -30 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.15 }}
               className={`flex h-24 w-24 items-center justify-center rounded-full animate-forge-glow ${
                 isOverdue
                   ? "bg-amber-500/10 text-amber-500"
@@ -179,7 +206,7 @@ function CheckInContent() {
               }`}
             >
               <CheckCircle size={56} className="animate-pulse" />
-            </div>
+            </motion.div>
           </div>
 
           <h1 className="mt-8 text-2xl font-black text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
@@ -212,59 +239,99 @@ function CheckInContent() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-2 rounded-xl bg-primary/5 p-4 border border-primary/10">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, type: "spring", stiffness: 200, damping: 25 }}
+            className="mt-6 flex flex-col gap-2 rounded-xl bg-primary/5 p-4 border border-primary/10"
+          >
             <p className="text-xs font-semibold text-primary uppercase tracking-widest">
               Action Required
             </p>
             <p className="text-sm font-medium text-text-secondary leading-relaxed">
               Show this screen to the front desk receptionist.
             </p>
-          </div>
+          </motion.div>
 
-          <button
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+            whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
             onClick={() => {
               setCheckInResult(null);
               setPhone("");
               setError(null);
             }}
-            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.04] py-4 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/[0.08] active:scale-[0.98] border border-white/[0.06] min-h-[48px]"
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/[0.04] py-4 text-sm font-semibold text-white border border-white/[0.06] min-h-[48px]"
           >
             <RefreshCw size={16} />
             Check In Another Member
-          </button>
-        </div>
-      </div>
+          </motion.button>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-[#080E1A] px-4 py-8">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="flex min-h-screen flex-col justify-center bg-[#080E1A] px-4 py-8"
+    >
       <div className="w-full max-w-sm mx-auto space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 25 }}
+          className="text-center space-y-2"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.1 }}
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20"
+          >
             <Building size={28} />
-          </div>
+          </motion.div>
           <h1 className="text-2xl font-black tracking-tight text-white mt-4" style={{ fontFamily: "var(--font-display)" }}>
             {gymConfig?.gymName}
           </h1>
           <p className="text-sm text-text-muted max-w-[280px] mx-auto">
             Welcome! Enter your phone number below to record your attendance.
           </p>
-        </div>
+        </motion.div>
 
         {/* Card Form */}
-        <div className="glass-card rounded-3xl p-6 border border-white/[0.06] shadow-xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 200, damping: 25, delay: 0.1 }}
+          className="glass-card rounded-3xl p-6 border border-white/[0.06] shadow-xl"
+        >
           <form onSubmit={handleCheckIn} className="space-y-4">
             {error && (
-              <div className="flex items-start gap-2.5 rounded-2xl bg-red-500/10 p-4 text-sm text-red-400 border border-red-500/20">
+              <motion.div
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="flex items-start gap-2.5 rounded-2xl bg-red-500/10 p-4 text-sm text-red-400 border border-red-500/20"
+              >
                 <AlertTriangle size={18} className="mt-0.5 shrink-0" />
                 <span className="leading-snug">{error}</span>
-              </div>
+              </motion.div>
             )}
 
             {gymConfig?.gymLat !== null && gymConfig?.gymLng !== null && (
-              <div className="flex items-center gap-2.5 rounded-2xl bg-primary/5 p-4 border border-primary/10 text-xs">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 25 }}
+                className="flex items-center gap-2.5 rounded-2xl bg-primary/5 p-4 border border-primary/10 text-xs"
+              >
                 <MapPin size={16} className="text-primary shrink-0 animate-bounce" />
                 <div className="text-left text-text-muted">
                   <span className="font-semibold text-primary block">
@@ -272,10 +339,15 @@ function CheckInContent() {
                   </span>
                   Your location will be checked to confirm you are at the front desk.
                 </div>
-              </div>
+              </motion.div>
             )}
 
-            <div className="space-y-1.5">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200, damping: 25 }}
+              className="space-y-1.5"
+            >
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider pl-1">
                 Phone Number
               </label>
@@ -293,12 +365,17 @@ function CheckInContent() {
                   className="w-full rounded-2xl bg-white/[0.03] py-4 pl-11 pr-4 text-base text-white placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary focus:bg-white/[0.05]"
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <button
+            <motion.button
               type="submit"
               disabled={checkingIn}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-bold text-white transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              whileHover={{ scale: 1.02, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+              whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-bold text-white disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
             >
               {checkingIn ? (
                 <>
@@ -311,11 +388,11 @@ function CheckInContent() {
                   <ArrowRight size={18} />
                 </>
               )}
-            </button>
+            </motion.button>
           </form>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -323,10 +400,15 @@ export default function CheckInPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-4 text-center">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex min-h-screen flex-col items-center justify-center bg-bg-base px-4 text-center"
+        >
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="mt-4 text-sm text-text-muted">Loading Gym Attendance Portal...</p>
-        </div>
+        </motion.div>
       }
     >
       <CheckInContent />

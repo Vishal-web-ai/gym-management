@@ -1,60 +1,48 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin, getCurrentUser } from "@/lib/auth";
 import { logActivity } from "@/lib/actions/activity";
 
-let db: any;
-
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-async function getUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
-}
-
-export async function getGymConfig() {
-  const userId = await getUserId();
-  return prisma().gymConfig.findUnique({ where: { userId } });
+export async function getGymConfig(uid?: string) {
+  if (uid) return prisma.gymConfig.findUnique({ where: { userId: uid } });
+  const user = await getCurrentUser();
+  if (!user) return null;
+  return prisma.gymConfig.findUnique({ where: { userId: user.gymOwnerId } });
 }
 
 export async function updateGymName(gymName: string) {
-  await requireAdmin();
-  const userId = await getUserId();
-  await prisma().gymConfig.upsert({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  await prisma.gymConfig.upsert({
+    where: { userId: ownerId },
     update: { gymName },
-    create: { userId, gymName },
+    create: { userId: ownerId, gymName },
   });
   logActivity("settings.gym_name.updated", JSON.stringify({ gymName }));
   revalidatePath("/settings");
 }
 
 export async function updateOwnerName(ownerName: string) {
-  await requireAdmin();
-  const userId = await getUserId();
-  await prisma().gymConfig.upsert({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  await prisma.gymConfig.upsert({
+    where: { userId: ownerId },
     update: { ownerName },
-    create: { userId, ownerName },
+    create: { userId: ownerId, ownerName },
   });
   logActivity("settings.owner_name.updated", JSON.stringify({ ownerName }));
   revalidatePath("/settings");
 }
 
 export async function updateGymLocation(lat: number, lng: number, radius: number) {
-  await requireAdmin();
-  const userId = await getUserId();
-  await prisma().gymConfig.upsert({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  await prisma.gymConfig.upsert({
+    where: { userId: ownerId },
     update: { gymLat: lat, gymLng: lng, gymRadius: radius },
-    create: { userId, gymLat: lat, gymLng: lng, gymRadius: radius },
+    create: { userId: ownerId, gymLat: lat, gymLng: lng, gymRadius: radius },
   });
   logActivity("settings.gym_location.updated", JSON.stringify({ lat, lng, radius }));
   revalidatePath("/settings");

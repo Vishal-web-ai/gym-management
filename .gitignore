@@ -1,0 +1,5 @@
+.aider*
+.env*
+*.log
+build_output.txt
+.next

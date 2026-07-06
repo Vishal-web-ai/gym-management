@@ -3,21 +3,26 @@
 import { useState, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { UserPlus, Banknote, AlertCircle } from "lucide-react";
+import { motion } from "motion/react";
 import Select from "@/components/Select";
 import { formatError } from "@/lib/actions/helpers";
 import ImageUpload from "@/components/ImageUpload";
 
+const spring = { type: "spring" as const, stiffness: 300, damping: 30, mass: 1 };
+
 function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
   return (
-    <button
+    <motion.button
       type="submit"
       disabled={pending}
-      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-medium text-white transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
+      whileHover={{ scale: 1.02, transition: { ...spring } }}
+      whileTap={{ scale: 0.97, transition: { type: "spring", stiffness: 400, damping: 20 } }}
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-medium text-white disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
     >
       <UserPlus size={18} />
       {pending ? "Saving..." : label}
-    </button>
+    </motion.button>
   );
 }
 
@@ -87,10 +92,15 @@ export default function MemberForm({
   return (
     <form action={dispatch} className="space-y-4">
       {error && (
-        <div className="flex items-start gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ ...spring }}
+          className="flex items-start gap-3 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400"
+        >
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
           <span>{error}</span>
-        </div>
+        </motion.div>
       )}
 
       {defaultValues?.id && (

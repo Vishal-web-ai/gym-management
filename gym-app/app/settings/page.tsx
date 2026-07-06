@@ -1,8 +1,11 @@
 import { getGymConfig } from "@/lib/actions/settings";
 import { getPlans } from "@/lib/actions/plans";
 import SettingsClient from "./SettingsClient";
+import { requireAdminPage } from "@/lib/auth";
 
 export default async function SettingsPage() {
+  await requireAdminPage();
+
   let config: any = { gymName: "Iron Forge Gym", ownerName: "", gymLat: null, gymLng: null, gymRadius: null };
   let plans: any[] = [];
   try {

@@ -1,32 +1,40 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
-let db: any;
-
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-export async function getAllPayments(page = 1) {
-  const { userId } = await auth();
-  if (!userId) return { payments: [], total: 0, hasMore: false };
+export async function getAllPayments(page = 1, month?: number, year?: number) {
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
 
   const take = 30;
-  const where = { userId };
+  const where: Record<string, unknown> = { userId: ownerId };
 
-  const [payments, total] = await Promise.all([
-    prisma().payment.findMany({
+  if (month !== undefined && year !== undefined) {
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    where.createdAt = { gte: start, lt: end };
+  }
+
+  const [payments, total, amountResult] = await prisma.$transaction([
+    prisma.payment.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * take,
       take,
       include: { member: { select: { firstName: true } } },
     }),
-    prisma().payment.count({ where }),
+    prisma.payment.count({ where }),
+    prisma.payment.aggregate({
+      where: { ...where, status: "Paid" },
+      _sum: { amount: true },
+    }),
   ]);
 
-  return { payments, total, hasMore: (page * take) < total };
+  return {
+    payments,
+    total,
+    hasMore: (page * take) < total,
+    totalAmount: amountResult._sum.amount ?? 0,
+  };
 }

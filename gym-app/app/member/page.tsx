@@ -19,6 +19,7 @@ import {
   CheckCircle,
   LogIn,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   findMemberByPhone,
   getMemberDashboard,
@@ -32,6 +33,8 @@ import {
   getMemberById,
   checkInMemberWithGPS,
 } from "@/lib/actions/member";
+import ProfilePhoto from "@/components/ProfilePhoto";
+import { AnimatedCard } from "@/components/animations";
 
 type Tab = "dashboard" | "profile";
 type StreakData = { current: number; best: number };
@@ -41,6 +44,9 @@ type PersonalRecord = MemberDashboard["personalRecords"][number];
 type PaymentHistory = Awaited<ReturnType<typeof getPaymentHistory>>;
 
 const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
+const spring = { type: "spring" as const, stiffness: 300, damping: 30, mass: 0.9 };
 
 export default function MemberPage() {
   return (
@@ -69,7 +75,7 @@ function MemberContent() {
   const router = useRouter();
   const gymUserId = searchParams.get("gym");
   const memberId = searchParams.get("memberId");
-  const [identified, setIdentified] = useState<{ id: string; name: string; status: string; endDate: string | null } | null>(null);
+  const [identified, setIdentified] = useState<{ id: string; name: string; status: string; endDate: string | null; image: string | null } | null>(null);
   const [showPhoneEntry, setShowPhoneEntry] = useState(!memberId);
   const [memberLinkLoading, setMemberLinkLoading] = useState(!!memberId);
   const [phone, setPhone] = useState("");
@@ -102,12 +108,12 @@ function MemberContent() {
     if (memberId) {
       setMemberLinkLoading(true);
       setShowPhoneEntry(false);
-      getMemberById(memberId)
+      getMemberById(memberId, gymUserId!)
         .then((member) => {
           if (cancelled) return;
           if (member && member.userId === gymUserId) {
             localStorage.setItem(`gym_member_${gymUserId}`, JSON.stringify(member));
-            setIdentified({ id: member.id, name: member.firstName, status: member.status, endDate: member.endDate ? member.endDate.toISOString() : null });
+            setIdentified({ id: member.id, name: member.firstName, status: member.status, endDate: member.endDate ? member.endDate.toISOString() : null, image: member.image ?? null });
             setShowPhoneEntry(false);
             return;
           }
@@ -130,9 +136,9 @@ function MemberContent() {
       const saved = localStorage.getItem(`gym_member_${gymUserId}`);
       if (saved) {
         try {
-          const parsed = JSON.parse(saved) as { id?: string; firstName?: string; status?: string; endDate?: string | null };
+          const parsed = JSON.parse(saved) as { id?: string; firstName?: string; status?: string; endDate?: string | null; image?: string | null };
           if (parsed.id && parsed.firstName) {
-            setIdentified({ id: parsed.id, name: parsed.firstName, status: parsed.status || "", endDate: parsed.endDate || null });
+            setIdentified({ id: parsed.id, name: parsed.firstName, status: parsed.status || "", endDate: parsed.endDate || null, image: parsed.image ?? null });
             setShowPhoneEntry(false);
           }
         } catch {
@@ -141,7 +147,7 @@ function MemberContent() {
       }
     }
 
-    getGymConfigByUserId(gymUserId).then((cfg) => {
+    getGymConfigByUserId(gymUserId!).then((cfg) => {
       if (cancelled) return;
       if (cfg) {
         setGymName(cfg.gymName);
@@ -203,12 +209,12 @@ function MemberContent() {
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
       }
-      await checkInMemberWithGPS(identified.id, lat, lng);
+      await checkInMemberWithGPS(identified.id, gymUserId!, lat, lng);
       setCheckInSuccess(true);
       setAlreadyCheckedIn(true);
       setCheckInVersion((v) => v + 1);
 
-      const streak = await getWeeklyStreak(identified.id);
+      const streak = await getWeeklyStreak(identified.id, gymUserId!);
       setCelebrationStreak(streak?.current || 0);
       setShowCelebration(true);
 
@@ -242,7 +248,7 @@ function MemberContent() {
   useEffect(() => {
     if (!identified) return;
     import("@/lib/actions/member").then(({ hasCheckedInToday }) => {
-      hasCheckedInToday(identified.id).then(setAlreadyCheckedIn);
+      hasCheckedInToday(identified.id, gymUserId!).then(setAlreadyCheckedIn);
     });
   }, [identified]);
 
@@ -251,13 +257,13 @@ function MemberContent() {
     setPhoneLoading(true);
     setPhoneError("");
     try {
-      const member = await findMemberByPhone(phone.trim(), gymUserId);
+      const member = await findMemberByPhone(phone.trim(), gymUserId!);
       if (!member) {
         setPhoneError("No member found with this phone number");
         return;
       }
       localStorage.setItem(`gym_member_${gymUserId}`, JSON.stringify(member));
-      setIdentified({ id: member.id, name: member.firstName, status: member.status, endDate: member.endDate ? member.endDate.toISOString() : null });
+      setIdentified({ id: member.id, name: member.firstName, status: member.status, endDate: member.endDate ? member.endDate.toISOString() : null, image: member.image ?? null });
       setShowPhoneEntry(false);
     } catch {
       setPhoneError("Something went wrong. Try again.");
@@ -281,7 +287,12 @@ function MemberContent() {
   if (showPhoneEntry) {
     return (
       <div className="flex min-h-full items-center justify-center px-4">
-        <div className="w-full max-w-sm space-y-6 animate-fade-in">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle }}
+          className="w-full max-w-sm space-y-6"
+        >
           <div className="text-center space-y-2">
             {gymName && (
               <div className="flex items-center justify-center gap-2 mb-2">
@@ -308,15 +319,21 @@ function MemberContent() {
               autoFocus
             />
             {phoneError && (
-              <p className="text-xs text-red-400 flex items-center gap-1">
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-xs text-red-400 flex items-center gap-1"
+              >
                 <AlertTriangle size="12" />
                 {phoneError}
-              </p>
+              </motion.p>
             )}
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               onClick={handlePhoneSubmit}
               disabled={phoneLoading || !phone.trim()}
-              className="w-full rounded-xl bg-primary py-3.5 text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 min-h-[48px]"
+              className="w-full rounded-xl bg-primary py-3.5 text-sm font-medium text-white disabled:opacity-50 min-h-[48px]"
             >
               {phoneLoading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -326,13 +343,13 @@ function MemberContent() {
               ) : (
                 "Continue"
               )}
-            </button>
+            </motion.button>
           </div>
 
           <p className="text-center text-xs text-text-muted">
             Don&apos;t have a membership yet? Contact the gym staff.
           </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -340,19 +357,27 @@ function MemberContent() {
 function CelebrationOverlay({ streak, onDismiss }: { streak: number; onDismiss: () => void }) {
   const message =
     streak >= 10
-      ? [`${streak} in a row nice! 😏`, "Absolute legend!", "No days off! 🔥"]
+      ? [`${streak} in a row nice!`, "Absolute legend!", "No days off!"]
       : streak >= 5
-      ? [`Day ${streak}! On fire! 🔥`, "Getting consistent! 😎", "Keep showing up!"]
+      ? [`Day ${streak}! On fire!`, "Getting consistent!", "Keep showing up!"]
       : streak >= 3
-      ? [`Day ${streak}! Let's go! 💪`, "Building momentum!", "3 in a row nice!"]
-      : ["Let's go! 💪", "First of many!", "Showing up is winning!"];
+      ? [`Day ${streak}! Let's go!`, "Building momentum!", "3 in a row nice!"]
+      : ["Let's go!", "First of many!", "Showing up is winning!"];
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-fade-in"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm"
       onClick={onDismiss}
     >
-      <div className="animate-scale-in text-center space-y-3 pointer-events-none">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="text-center space-y-3 pointer-events-none"
+      >
         <div className="relative mx-auto flex size-28 items-center justify-center">
           <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
           <div className="absolute inset-2 rounded-full bg-emerald-500/30 animate-pulse" />
@@ -365,97 +390,22 @@ function CelebrationOverlay({ streak, onDismiss }: { streak: number; onDismiss: 
         </p>
         <p className="text-sm text-white/80 drop-shadow">{message[1]}</p>
         <p className="text-xs text-white/40 mt-4">Tap anywhere to dismiss</p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
   return (
     <div className="flex min-h-full flex-col">
       <div className="flex-1 pb-20">
-        {/* Check-in section for WhatsApp link flow */}
-        {identified && memberId && !isAccessRestricted(identified.status, identified.endDate) && (
-          <div className="space-y-3 p-4 animate-fade-in border-b border-white/[0.06] mb-2">
-            <div className="flex items-center gap-3">
-              <div className="flex size-12 items-center justify-center rounded-full bg-primary-subtle">
-                <span className="text-lg font-bold text-primary">
-                  {identified.name[0]}
-                </span>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">Welcome back,</p>
-                <p className="text-lg font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
-                  {identified.name}
-                </p>
-              </div>
-            </div>
-
-            {/* GPS status (only when configured) */}
-            {gymConfig && (
-              <div className={`rounded-xl border p-3 flex items-center gap-3 ${
-                gpsStatus === "verified" ? "border-emerald-500/30 bg-emerald-500/5" :
-                gpsStatus === "far" ? "border-red-500/30 bg-red-500/5" :
-                gpsStatus === "denied" ? "border-red-500/30 bg-red-500/5" :
-                "border-white/[0.08] bg-white/[0.02]"
-              }`}>
-                <MapPin size={18} className={
-                  gpsStatus === "verified" ? "text-emerald-400" :
-                  gpsStatus === "requesting" ? "text-amber-400" :
-                  "text-red-400"
-                } />
-                <p className="text-sm text-text-primary flex-1">
-                  {gpsStatus === "idle" && "Detecting your location..."}
-                  {gpsStatus === "requesting" && "Requesting GPS..."}
-                  {gpsStatus === "verified" && "You're at the gym!"}
-                  {gpsStatus === "denied" && "Enable GPS to check in"}
-                  {gpsStatus === "far" && `You're ${distance}m away`}
-                </p>
-              </div>
-            )}
-
-            {/* Check-in button / status */}
-            {checkInSuccess ? (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-center animate-scale-in">
-                <CheckCircle size={32} className="mx-auto text-emerald-400 mb-1" />
-                <p className="text-sm font-bold text-emerald-400">Checked In!</p>
-                <p className="text-xs text-text-muted mt-1">Your attendance has been recorded for today.</p>
-              </div>
-            ) : alreadyCheckedIn ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
-                <CheckCircle size={20} className="mx-auto text-emerald-400 mb-1" />
-                <p className="text-sm font-medium text-emerald-400">Already checked in today</p>
-              </div>
-            ) : !gymConfig || gpsStatus === "verified" ? (
-              <button
-                onClick={handleCheckIn}
-                disabled={checkingIn}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
-              >
-                {checkingIn ? (
-                  <><Loader2 size={18} className="animate-spin" /> Checking in...</>
-                ) : (
-                  <><LogIn size={18} /> Check In Now</>
-                )}
-              </button>
-            ) : gpsStatus === "denied" || gpsStatus === "far" ? (
-              <p className="text-xs text-text-muted text-center">
-                {gpsStatus === "denied"
-                  ? "Please enable location access in your browser settings to check in."
-                  : `Move closer to the gym to check in.`}
-              </p>
-            ) : null}
-
-            {checkInError && (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex items-start gap-2">
-                <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-red-400">{checkInError}</p>
-              </div>
-            )}
-          </div>
-        )}
 
         {identified && isAccessRestricted(identified.status, identified.endDate) ? (
-          <div className="flex flex-col items-center justify-center px-4 py-20 text-center animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springGentle }}
+            className="flex flex-col items-center justify-center px-4 py-20 text-center"
+          >
             <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-red-500/10">
               <AlertTriangle size={28} className="text-red-400" />
             </div>
@@ -465,22 +415,116 @@ function CelebrationOverlay({ streak, onDismiss }: { streak: number; onDismiss: 
             <p className="mt-2 max-w-xs text-sm text-text-muted">
               Your membership has expired. Please contact the gym staff to renew your membership and regain access.
             </p>
-          </div>
+          </motion.div>
         ) : (
           <>
             {tab === "dashboard" && identified && (
-              <DashboardTab memberId={identified.id} checkInVersion={checkInVersion} />
+              <>
+                {memberId && !isAccessRestricted(identified.status, identified.endDate) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...springGentle, delay: 0.05 }}
+                    className="space-y-3 p-4 border-b border-white/[0.06] mb-2"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ProfilePhoto image={identified.image} name={identified.name} />
+                      <div>
+                        <p className="text-sm text-text-muted">Welcome back,</p>
+                        <p className="text-lg font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                          {identified.name}
+                        </p>
+                      </div>
+                    </div>
+
+                    {gymConfig && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className={`rounded-xl border p-3 flex items-center gap-3 ${
+                          gpsStatus === "verified" ? "border-emerald-500/30 bg-emerald-500/5" :
+                          gpsStatus === "far" ? "border-red-500/30 bg-red-500/5" :
+                          gpsStatus === "denied" ? "border-red-500/30 bg-red-500/5" :
+                          "border-white/[0.08] bg-white/[0.02]"
+                        }`}
+                      >
+                        <MapPin size={18} className={
+                          gpsStatus === "verified" ? "text-emerald-400" :
+                          gpsStatus === "requesting" ? "text-amber-400" :
+                          "text-red-400"
+                        } />
+                        <p className="text-sm text-text-primary flex-1">
+                          {gpsStatus === "idle" && "Detecting your location..."}
+                          {gpsStatus === "requesting" && "Requesting GPS..."}
+                          {gpsStatus === "verified" && "You're at the gym!"}
+                          {gpsStatus === "denied" && "Enable GPS to check in"}
+                          {gpsStatus === "far" && `You're ${distance}m away`}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {checkInSuccess ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ ...springGentle }}
+                        className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-center"
+                      >
+                        <CheckCircle size={32} className="mx-auto text-emerald-400 mb-1" />
+                        <p className="text-sm font-bold text-emerald-400">Checked In!</p>
+                        <p className="text-xs text-text-muted mt-1">Your attendance has been recorded for today.</p>
+                      </motion.div>
+                    ) : alreadyCheckedIn ? (
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-center">
+                        <CheckCircle size={20} className="mx-auto text-emerald-400 mb-1" />
+                        <p className="text-sm font-medium text-emerald-400">Already checked in today</p>
+                      </div>
+                    ) : !gymConfig || gpsStatus === "verified" ? (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleCheckIn}
+                        disabled={checkingIn}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-bold text-white disabled:opacity-50 min-h-[48px] shadow-lg shadow-primary/20"
+                      >
+                        {checkingIn ? (
+                          <><Loader2 size={18} className="animate-spin" /> Checking in...</>
+                        ) : (
+                          <><LogIn size={18} /> Check In Now</>
+                        )}
+                      </motion.button>
+                    ) : gpsStatus === "denied" || gpsStatus === "far" ? (
+                      <p className="text-xs text-text-muted text-center">
+                        {gpsStatus === "denied"
+                          ? "Please enable location access in your browser settings to check in."
+                          : `Move closer to the gym to check in.`}
+                      </p>
+                    ) : null}
+
+                    {checkInError && (
+                      <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 flex items-start gap-2">
+                        <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-400">{checkInError}</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+                <DashboardTab memberId={identified.id} gymUserId={gymUserId!} checkInVersion={checkInVersion} />
+              </>
             )}
             {tab === "profile" && identified && (
-              <ProfileTab memberId={identified.id} gymName={gymName} />
+              <ProfileTab memberId={identified.id} gymUserId={gymUserId!} gymName={gymName} />
             )}
           </>
         )}
       </div>
 
-      {showCelebration && (
-        <CelebrationOverlay streak={celebrationStreak} onDismiss={() => setShowCelebration(false)} />
-      )}
+      <AnimatePresence>
+        {showCelebration && (
+          <CelebrationOverlay streak={celebrationStreak} onDismiss={() => setShowCelebration(false)} />
+        )}
+      </AnimatePresence>
 
       {(!identified || !isAccessRestricted(identified.status, identified.endDate)) && (
         <nav className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around border-t border-white/[0.06] bg-bg-base/90 backdrop-blur-2xl pb-safe">
@@ -490,22 +534,32 @@ function CelebrationOverlay({ streak, onDismiss }: { streak: number; onDismiss: 
           ]).map(({ id, label, icon: Icon }) => {
             const isActive = tab === id;
             return (
-              <button
+              <motion.button
                 key={id}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setTab(id)}
-                className="relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs transition-colors min-h-[48px] min-w-[48px] justify-center active:scale-95"
+                className="relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs min-h-[48px] min-w-[48px] justify-center"
               >
                 {isActive && (
-                  <span className="absolute -top-px left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary animate-forge-glow" />
+                  <motion.span
+                    layoutId="member-nav-active"
+                    className="absolute -top-px left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  />
                 )}
-                <Icon
-                  size={22}
-                  className={`transition-all duration-200 ${isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"}`}
-                />
-                <span className={`transition-all duration-200 ${isActive ? "font-semibold text-primary" : "text-text-muted"}`}>
+                <motion.div
+                  animate={{ scale: isActive ? 1.1 : 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
+                  <Icon
+                    size={22}
+                    className={`transition-colors duration-200 ${isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"}`}
+                  />
+                </motion.div>
+                <span className={`transition-colors duration-200 ${isActive ? "font-semibold text-primary" : "text-text-muted"}`}>
                   {label}
                 </span>
-              </button>
+              </motion.button>
             );
           })}
         </nav>
@@ -514,7 +568,7 @@ function CelebrationOverlay({ streak, onDismiss }: { streak: number; onDismiss: 
   );
 }
 
-function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInVersion: number }) {
+function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: string; gymUserId: string; checkInVersion: number }) {
   const [data, setData] = useState<MemberDashboard | null>(null);
   const [streak, setStreak] = useState<StreakData | null>(null);
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
@@ -532,9 +586,9 @@ function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInV
 
   useEffect(() => {
     Promise.all([
-      getMemberDashboard(memberId),
-      getWeeklyStreak(memberId),
-      getAttendanceCalendar(memberId, calYear, calMonth),
+      getMemberDashboard(memberId, gymUserId),
+      getWeeklyStreak(memberId, gymUserId),
+      getAttendanceCalendar(memberId, gymUserId, calYear, calMonth),
     ]).then(([d, s, c]) => {
       setData(d);
       setStreak(s);
@@ -542,12 +596,12 @@ function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInV
       if (d) setPrs(d.personalRecords);
       setLoading(false);
     });
-  }, [memberId, calYear, calMonth, checkInVersion]);
+  }, [memberId, gymUserId, calYear, calMonth, checkInVersion]);
 
   async function handleAddPR() {
     if (!prExercise.trim() || !prWeight) return;
     try {
-      const record = await recordPR(memberId, prExercise.trim(), Number(prWeight), Number(prReps));
+      const record = await recordPR(memberId, gymUserId, prExercise.trim(), Number(prWeight), Number(prReps));
       setPrs((prev) => [record, ...prev]);
       setShowAddPR(false);
       setPrExercise("");
@@ -558,7 +612,7 @@ function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInV
 
   async function handleDeletePR(id: string) {
     try {
-      await deletePR(id);
+      await deletePR(id, gymUserId);
       setPrs((prev) => prev.filter((p) => p.id !== id));
     } catch {}
   }
@@ -575,7 +629,7 @@ function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInV
   async function handleUpdatePR(prId: string) {
     if (!editForm.exercise.trim() || !editForm.weight) return;
     try {
-      await updatePersonalRecord(prId, {
+      await updatePersonalRecord(prId, gymUserId, {
         exercise: editForm.exercise.trim(),
         weight: Number(editForm.weight),
         reps: Number(editForm.reps),
@@ -607,190 +661,221 @@ function DashboardTab({ memberId, checkInVersion }: { memberId: string; checkInV
   const checkedInDates = new Set(calendar.map((c) => c.date));
 
   return (
-    <div className="space-y-4 p-4 animate-fade-in">
+    <div className="space-y-4 p-4">
       <h1 className="text-xl font-bold tracking-tight text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
         Dashboard
       </h1>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="glass-card rounded-xl p-4 text-center">
-          <Flame size={22} className="mx-auto text-primary mb-1" />
-          <p className="text-2xl font-bold text-text-primary">{streak?.current || 0}</p>
-          <p className="text-xs text-text-muted">Day Streak</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <TrendingUp size={22} className="mx-auto text-emerald-400 mb-1" />
-          <p className="text-2xl font-bold text-text-primary">{streak?.best || 0}</p>
-          <p className="text-xs text-text-muted">Best Streak</p>
-        </div>
+        <AnimatedCard delay={0.1} hover={false}>
+          <div className="glass-card rounded-xl p-4 text-center">
+            <Flame size={22} className="mx-auto text-primary mb-1" />
+            <p className="text-2xl font-bold text-text-primary">{streak?.current || 0}</p>
+            <p className="text-xs text-text-muted">Day Streak</p>
+          </div>
+        </AnimatedCard>
+        <AnimatedCard delay={0.15} hover={false}>
+          <div className="glass-card rounded-xl p-4 text-center">
+            <TrendingUp size={22} className="mx-auto text-emerald-400 mb-1" />
+            <p className="text-2xl font-bold text-text-primary">{streak?.best || 0}</p>
+            <p className="text-xs text-text-muted">Best Streak</p>
+          </div>
+        </AnimatedCard>
       </div>
 
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
-            <Clock size={14} />
-            Attendance Calendar
-          </h2>
-          <div className="flex gap-1">
-            <button
-              onClick={() => {
-                if (calMonth === 1) { setCalYear((y) => y - 1); setCalMonth(12); }
-                else setCalMonth((m) => m - 1);
-              }}
-              className="rounded-lg bg-white/[0.06] px-2 py-1 text-xs text-text-muted"
-            >Prev</button>
-            <button
-              onClick={() => {
-                if (calMonth === 12) { setCalYear((y) => y + 1); setCalMonth(1); }
-                else setCalMonth((m) => m + 1);
-              }}
-              className="rounded-lg bg-white/[0.06] px-2 py-1 text-xs text-text-muted"
-            >Next</button>
-          </div>
-        </div>
-        <div className="grid grid-cols-7 gap-1 text-center">
-          {weekDays.map((d) => (
-            <span key={d} className="text-xs font-medium text-text-muted py-1">{d}</span>
-          ))}
-          {calendarDates.map((d, i) => (
-            <div
-              key={i}
-              className={`rounded-lg py-1.5 text-xs ${
-                d === null ? "" :
-                checkedInDates.has(d) ? "bg-primary text-white font-bold" :
-                "text-text-muted"
-              }`}
-            >
-              {d || ""}
-            </div>
-          ))}
-        </div>
-      </div>
-
-
-
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
-            Personal Records
-          </h2>
-          <button
-            onClick={() => setShowAddPR(true)}
-            className="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
-          >
-            <Plus size={14} />
-            Add PR
-          </button>
-        </div>
-
-        {showAddPR && (
-          <div className="rounded-lg bg-white/[0.03] p-3 space-y-3 animate-slide-down">
-            <input
-              value={prExercise}
-              onChange={(e) => setPrExercise(e.target.value)}
-              placeholder="Exercise name (e.g. Bench Press)"
-              className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-              autoFocus
-            />
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={prWeight}
-                onChange={(e) => setPrWeight(e.target.value)}
-                placeholder="Weight (kg)"
-                className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-              />
-              <input
-                type="number"
-                value={prReps}
-                onChange={(e) => setPrReps(e.target.value)}
-                placeholder="Reps"
-                className="w-20 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowAddPR(false)} className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-text-muted">Cancel</button>
-              <button onClick={handleAddPR} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">Save</button>
+      <AnimatedCard delay={0.2} hover={false}>
+        <div className="glass-card rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
+              <Clock size={14} />
+              Attendance Calendar
+            </h2>
+            <div className="flex gap-1">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  if (calMonth === 1) { setCalYear((y) => y - 1); setCalMonth(12); }
+                  else setCalMonth((m) => m - 1);
+                }}
+                className="rounded-lg bg-white/[0.06] px-2 py-1 text-xs text-text-muted"
+              >Prev</motion.button>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  if (calMonth === 12) { setCalYear((y) => y + 1); setCalMonth(1); }
+                  else setCalMonth((m) => m + 1);
+                }}
+                className="rounded-lg bg-white/[0.06] px-2 py-1 text-xs text-text-muted"
+              >Next</motion.button>
             </div>
           </div>
-        )}
-
-        {prs.length === 0 ? (
-          <p className="text-sm text-text-muted">No personal records yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {prs.map((pr) => (
-              editingPrId === pr.id ? (
-                <div key={pr.id} className="rounded-lg bg-white/[0.03] p-3 space-y-3 animate-slide-down">
-                  <input
-                    value={editForm.exercise}
-                    onChange={(e) => setEditForm((f) => ({ ...f, exercise: e.target.value }))}
-                    placeholder="Exercise name"
-                    className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-                    autoFocus
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={editForm.weight}
-                      onChange={(e) => setEditForm((f) => ({ ...f, weight: e.target.value }))}
-                      placeholder="Weight (kg)"
-                      className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-                    />
-                    <input
-                      type="number"
-                      value={editForm.reps}
-                      onChange={(e) => setEditForm((f) => ({ ...f, reps: e.target.value }))}
-                      placeholder="Reps"
-                      className="w-20 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <button onClick={handleCancelEdit} className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-text-muted">Cancel</button>
-                    <button onClick={() => handleUpdatePR(pr.id)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">Save</button>
-                  </div>
-                </div>
-              ) : (
-                <div key={pr.id} className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2.5">
-                  <Dumbbell size={14} className="text-primary shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">{pr.exercise}</p>
-                    <p className="text-xs text-text-muted">{pr.weight} kg × {pr.reps} reps</p>
-                  </div>
-                  <p className="text-xs text-text-muted shrink-0">
-                    {new Date(pr.date).toLocaleDateString("en-IN")}
-                  </p>
-                  <button
-                    onClick={() => handleStartEdit(pr)}
-                    className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-primary"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                  <button
-                    onClick={() => handleDeletePR(pr.id)}
-                    className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-red-400"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              )
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {weekDays.map((d) => (
+              <span key={d} className="text-xs font-medium text-text-muted py-1">{d}</span>
+            ))}
+            {calendarDates.map((d, i) => (
+              <div
+                key={i}
+                className={`rounded-lg py-1.5 text-xs ${
+                  d === null ? "" :
+                  checkedInDates.has(d) ? "bg-primary text-white font-bold" :
+                  "text-text-muted"
+                }`}
+              >
+                {d || ""}
+              </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      </AnimatedCard>
+
+      <AnimatedCard delay={0.25} hover={false}>
+        <div className="glass-card rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
+              Personal Records
+            </h2>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAddPR(true)}
+              className="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+            >
+              <Plus size={14} />
+              Add PR
+            </motion.button>
+          </div>
+
+          <AnimatePresence>
+            {showAddPR && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ ...springGentle }}
+                className="rounded-lg bg-white/[0.03] p-3 space-y-3 overflow-hidden"
+              >
+                <input
+                  value={prExercise}
+                  onChange={(e) => setPrExercise(e.target.value)}
+                  placeholder="Exercise name (e.g. Bench Press)"
+                  className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={prWeight}
+                    onChange={(e) => setPrWeight(e.target.value)}
+                    placeholder="Weight (kg)"
+                    className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                  />
+                  <input
+                    type="number"
+                    value={prReps}
+                    onChange={(e) => setPrReps(e.target.value)}
+                    placeholder="Reps"
+                    className="w-20 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setShowAddPR(false)} className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-text-muted">Cancel</button>
+                  <motion.button whileTap={{ scale: 0.95 }} onClick={handleAddPR} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">Save</motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {prs.length === 0 ? (
+            <p className="text-sm text-text-muted">No personal records yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {prs.map((pr) => (
+                editingPrId === pr.id ? (
+                  <motion.div
+                    key={pr.id}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="rounded-lg bg-white/[0.03] p-3 space-y-3 overflow-hidden"
+                  >
+                    <input
+                      value={editForm.exercise}
+                      onChange={(e) => setEditForm((f) => ({ ...f, exercise: e.target.value }))}
+                      placeholder="Exercise name"
+                      className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={editForm.weight}
+                        onChange={(e) => setEditForm((f) => ({ ...f, weight: e.target.value }))}
+                        placeholder="Weight (kg)"
+                        className="flex-1 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                      />
+                      <input
+                        type="number"
+                        value={editForm.reps}
+                        onChange={(e) => setEditForm((f) => ({ ...f, reps: e.target.value }))}
+                        placeholder="Reps"
+                        className="w-20 rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={handleCancelEdit} className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-text-muted">Cancel</button>
+                      <motion.button whileTap={{ scale: 0.95 }} onClick={() => handleUpdatePR(pr.id)} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white">Save</motion.button>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={pr.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...springGentle }}
+                    className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2.5"
+                  >
+                    <Dumbbell size={14} className="text-primary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">{pr.exercise}</p>
+                      <p className="text-xs text-text-muted">{pr.weight} kg × {pr.reps} reps</p>
+                    </div>
+                    <p className="text-xs text-text-muted shrink-0">
+                      {new Date(pr.date).toLocaleDateString("en-IN")}
+                    </p>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleStartEdit(pr)}
+                      className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-primary"
+                    >
+                      <Pencil size={12} />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => handleDeletePR(pr.id)}
+                      className="flex size-7 items-center justify-center rounded-lg text-text-muted hover:text-red-400"
+                    >
+                      <Trash2 size={12} />
+                    </motion.button>
+                  </motion.div>
+                )
+              ))}
+            </div>
+          )}
+        </div>
+      </AnimatedCard>
     </div>
   );
 }
 
-function ProfileTab({ memberId, gymName }: { memberId: string; gymName: string }) {
+function ProfileTab({ memberId, gymUserId, gymName }: { memberId: string; gymUserId: string; gymName: string }) {
   const [data, setData] = useState<MemberDashboard | null>(null);
   const [payments, setPayments] = useState<PaymentHistory>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      getMemberDashboard(memberId),
-      getPaymentHistory(memberId),
+      getMemberDashboard(memberId, gymUserId),
+      getPaymentHistory(memberId, gymUserId),
     ]).then(([d, p]) => {
       setData(d);
       setPayments(p);
@@ -809,90 +894,101 @@ function ProfileTab({ memberId, gymName }: { memberId: string; gymName: string }
   if (!data) return null;
 
   return (
-    <div className="space-y-4 p-4 animate-fade-in">
-      <div className="text-center space-y-2">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary-subtle">
-          <span className="text-2xl font-bold text-primary">
-            {data.member.firstName[0]}{data.member.firstName[1]}
-          </span>
-        </div>
+    <div className="space-y-4 p-4">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.05 }}
+        className="flex items-center gap-4"
+      >
+        <ProfilePhoto image={data.member.image} name={data.member.firstName} className="size-16" textClassName="text-2xl" />
         <div>
           <h1 className="text-xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
             {data.member.firstName}
           </h1>
           <p className="text-sm text-text-muted">{data.member.phone}</p>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
-          Membership Info
-        </h2>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-sm text-text-muted">Gym</span>
-            <span className="text-sm font-medium text-text-primary">{gymName}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-text-muted">Plan</span>
-            <span className="text-sm font-medium text-text-primary">{data.member.plan?.name || "N/A"}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-text-muted">Status</span>
-            <span className={`text-sm font-medium ${
-              data.member.status === "Active" ? "text-emerald-400" :
-              data.member.status === "Frozen" ? "text-cyan-400" :
-              "text-red-400"
-            }`}>{data.member.status}</span>
-          </div>
-          {data.member.createdAt && (
+      <AnimatedCard delay={0.1}>
+        <div className="glass-card rounded-xl p-4 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
+            Membership Info
+          </h2>
+          <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-text-muted">Member Since</span>
-              <span className="text-sm font-medium text-text-primary">
-                {new Date(data.member.createdAt).toLocaleDateString("en-IN")}
-              </span>
+              <span className="text-sm text-text-muted">Gym</span>
+              <span className="text-sm font-medium text-text-primary">{gymName}</span>
             </div>
-          )}
-          {data.member.plan && (
             <div className="flex justify-between">
-              <span className="text-sm text-text-muted">Plan Price</span>
-              <span className="text-sm font-medium text-text-primary">₹{data.member.plan.price.toLocaleString("en-IN")}</span>
+              <span className="text-sm text-text-muted">Plan</span>
+              <span className="text-sm font-medium text-text-primary">{data.member.plan?.name || "N/A"}</span>
             </div>
-          )}
-          {data.member.endDate && (
             <div className="flex justify-between">
-              <span className="text-sm text-text-muted">Valid Till</span>
-              <span className="text-sm font-medium text-text-primary">
-                {new Date(data.member.endDate).toLocaleDateString("en-IN")}
-              </span>
+              <span className="text-sm text-text-muted">Status</span>
+              <span className={`text-sm font-medium ${
+                data.member.status === "Active" ? "text-emerald-400" :
+                data.member.status === "Frozen" ? "text-cyan-400" :
+                "text-red-400"
+              }`}>{data.member.status}</span>
+            </div>
+            {data.member.createdAt && (
+              <div className="flex justify-between">
+                <span className="text-sm text-text-muted">Member Since</span>
+                <span className="text-sm font-medium text-text-primary">
+                  {new Date(data.member.createdAt).toLocaleDateString("en-IN")}
+                </span>
+              </div>
+            )}
+            {data.member.plan && (
+              <div className="flex justify-between">
+                <span className="text-sm text-text-muted">Plan Price</span>
+                <span className="text-sm font-medium text-text-primary">₹{data.member.plan.price.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            {data.member.endDate && (
+              <div className="flex justify-between">
+                <span className="text-sm text-text-muted">Valid Till</span>
+                <span className="text-sm font-medium text-text-primary">
+                  {new Date(data.member.endDate).toLocaleDateString("en-IN")}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </AnimatedCard>
+
+      <AnimatedCard delay={0.2}>
+        <div className="glass-card rounded-xl p-4 space-y-3">
+          <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
+            <Receipt size={14} />
+            Payment History
+          </h2>
+          {payments.length === 0 ? (
+            <p className="text-sm text-text-muted">No payments recorded.</p>
+          ) : (
+            <div className="space-y-2">
+              {payments.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ ...springGentle, delay: 0.25 + i * 0.04 }}
+                  className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2.5"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-text-primary">₹{p.amount.toLocaleString("en-IN")}</p>
+                    <p className="text-xs text-text-muted">{p.mode} · {new Date(p.createdAt).toLocaleDateString("en-IN")}</p>
+                  </div>
+                  <span className={`text-xs font-medium ${
+                    p.status === "Paid" ? "text-emerald-400" : "text-red-400"
+                  }`}>{p.status}</span>
+                </motion.div>
+              ))}
             </div>
           )}
         </div>
-      </div>
-
-      <div className="glass-card rounded-xl p-4 space-y-3">
-        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
-          <Receipt size={14} />
-          Payment History
-        </h2>
-        {payments.length === 0 ? (
-          <p className="text-sm text-text-muted">No payments recorded.</p>
-        ) : (
-          <div className="space-y-2">
-            {payments.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-lg bg-white/[0.03] px-3 py-2.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary">₹{p.amount.toLocaleString("en-IN")}</p>
-                  <p className="text-xs text-text-muted">{p.mode} · {new Date(p.createdAt).toLocaleDateString("en-IN")}</p>
-                </div>
-                <span className={`text-xs font-medium ${
-                  p.status === "Paid" ? "text-emerald-400" : "text-red-400"
-                }`}>{p.status}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </AnimatedCard>
     </div>
   );
 }

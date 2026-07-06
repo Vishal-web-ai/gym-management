@@ -1,72 +1,66 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
-import { getPrisma } from "@/lib/prisma";
-
-let db: any;
-
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-async function getUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
-}
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 
 export async function getMonthlyTrend() {
-  const userId = await getUserId();
-  const now = new Date();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  const year = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+
+  const startOfYear = new Date(year, 0, 1);
+  const startOfNextYear = new Date(year + 1, 0, 1);
+
+  const [allPayments, allExpenses] = await prisma.$transaction([
+    prisma.payment.findMany({
+      where: { userId: ownerId, status: "Paid", createdAt: { gte: startOfYear, lt: startOfNextYear } },
+      select: { amount: true, createdAt: true },
+    }),
+    prisma.expense.findMany({
+      where: { userId: ownerId, date: { gte: startOfYear, lt: startOfNextYear } },
+      select: { amount: true, date: true },
+    }),
+  ]);
+
   const months: { label: string; revenue: number; expenses: number }[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const start = new Date(d.getFullYear(), d.getMonth(), 1);
-    const end = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    const label = d.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-    const [rev, exp] = await Promise.all([
-      prisma().payment.aggregate({
-        where: { userId, status: "Paid", createdAt: { gte: start, lt: end } },
-        _sum: { amount: true },
-      }),
-      prisma().expense.aggregate({
-        where: { userId, date: { gte: start, lt: end } },
-        _sum: { amount: true },
-      }),
-    ]);
+  for (let m = 0; m <= currentMonth; m++) {
+    const d = new Date(year, m, 1);
+    const monthRevenue = allPayments
+      .filter(p => p.createdAt.getMonth() === m)
+      .reduce((sum, p) => sum + p.amount, 0);
+    const monthExpenses = allExpenses
+      .filter(e => e.date.getMonth() === m)
+      .reduce((sum, e) => sum + e.amount, 0);
     months.push({
-      label,
-      revenue: rev._sum.amount ?? 0,
-      expenses: exp._sum.amount ?? 0,
+      label: d.toLocaleDateString("en-IN", { month: "short" }),
+      revenue: monthRevenue,
+      expenses: monthExpenses,
     });
   }
   return months;
 }
 
 export async function getDashboardStats() {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [revenue, activeCount, overdueCount, expensesSum, recentPayments] =
-    await Promise.all([
-      prisma().payment.aggregate({
-        where: {
-          userId,
-          status: "Paid",
-          createdAt: { gte: startOfMonth },
-        },
+    await prisma.$transaction([
+      prisma.payment.aggregate({
+        where: { userId: ownerId, status: "Paid", createdAt: { gte: startOfMonth } },
         _sum: { amount: true },
       }),
-      prisma().member.count({ where: { userId, status: "Active" } }),
-      prisma().member.count({ where: { userId, status: "Overdue" } }),
-      prisma().expense.aggregate({
-        where: { userId, date: { gte: startOfMonth } },
+      prisma.member.count({ where: { userId: ownerId, status: "Active" } }),
+      prisma.member.count({ where: { userId: ownerId, status: "Overdue" } }),
+      prisma.expense.aggregate({
+        where: { userId: ownerId, date: { gte: startOfMonth } },
         _sum: { amount: true },
       }),
-      prisma().payment.findMany({
-        where: { userId, status: "Paid" },
+      prisma.payment.findMany({
+        where: { userId: ownerId, status: "Paid" },
         orderBy: { createdAt: "desc" },
         take: 5,
         include: { member: { select: { firstName: true } } },

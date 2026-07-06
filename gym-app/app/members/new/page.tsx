@@ -4,6 +4,7 @@ import { useState, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createMemberWithPayment } from "@/lib/actions/members";
 import { getPlans } from "@/lib/actions/plans";
+import { getGymConfig } from "@/lib/actions/settings";
 import { formatError } from "@/lib/actions/helpers";
 import { openWhatsApp, welcomeMessage, receiptMessage } from "@/lib/whatsapp";
 import MemberForm from "../MemberForm";
@@ -12,9 +13,11 @@ import WhatsAppConfirmModal from "@/components/WhatsAppConfirmModal";
 
 export default function NewMemberPage() {
   const [plans, setPlans] = useState<{ id: string; name: string; price: number }[]>([]);
+  const [gymName, setGymName] = useState<string>();
 
   useEffect(() => {
     getPlans().then(setPlans).catch(() => {});
+    getGymConfig().then((c) => c?.gymName && setGymName(c.gymName)).catch(() => {});
   }, []);
   const router = useRouter();
   const [doneData, setDoneData] = useState<{ phone: string; name: string; amount: number; mode: string; memberId: string; gymUserId: string } | null>(null);
@@ -43,8 +46,8 @@ export default function NewMemberPage() {
     if (!doneData) return;
     const { phone, name, amount, mode, memberId, gymUserId } = doneData;
     const link = `${window.location.origin}/member?memberId=${memberId}&gym=${gymUserId}`;
-    openWhatsApp(phone, welcomeMessage(name, new Date().toISOString(), undefined, link));
-    openWhatsApp(phone, receiptMessage(name, amount, mode, new Date().toISOString(), undefined, link));
+    openWhatsApp(phone, welcomeMessage(name, new Date().toISOString(), gymName, link));
+    openWhatsApp(phone, receiptMessage(name, amount, mode, new Date().toISOString(), gymName, link));
     setDoneData(null);
     setShowConfirm(false);
     router.push("/members");

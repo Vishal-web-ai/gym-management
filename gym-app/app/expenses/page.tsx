@@ -1,8 +1,11 @@
 import { getExpenses } from "@/lib/actions/expenses";
 import { exportExpensesCSV } from "@/lib/actions/members";
 import ExpenseClient from "./ExpenseClient";
+import { requireAdminPage } from "@/lib/auth";
 
 export default async function ExpensesPage() {
+  await requireAdminPage();
+
   let expenses: any[] = [];
   let expensesError: string | null = null;
   let expensesCsv = "";

@@ -15,12 +15,13 @@ model Plan {
   durationDays Int
   createdAt   DateTime @default(now())
   members     Member[]
+
+  @@index([userId])
 }
 
 model Member {
   id        String    @id @default(cuid())
   userId    String
-  memberUserId String?
   firstName String
   phone     String
   address   String?
@@ -35,6 +36,11 @@ model Member {
   payments  Payment[]
   attendances Attendance[]
   personalRecords PersonalRecord[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([userId, status, endDate])
+  @@index([userId, phone])
 }
 
 model Payment {
@@ -46,6 +52,11 @@ model Payment {
   mode      String
   status    String   @default("Paid")
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, memberId])
+  @@index([userId, createdAt])
+  @@index([userId, status, createdAt])
 }
 
 model Attendance {
@@ -55,6 +66,20 @@ model Attendance {
   memberId    String?
   memberName  String?
   checkInTime DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, checkInTime])
+  @@index([memberId])
+  @@index([memberId, checkInTime])
+}
+
+model GymUser {
+  clerkId     String   @id
+  role        String   @default("MEMBER")
+  gymOwnerId  String?
+  createdAt   DateTime @default(now())
+
+  @@index([gymOwnerId])
 }
 
 model Expense {
@@ -64,15 +89,19 @@ model Expense {
   amount   Float
   category String
   date     DateTime
+
+  @@index([userId])
+  @@index([userId, date])
 }
 
 model GymConfig {
-  userId   String @id
-  gymName  String @default("Iron Forge Gym")
-  ownerName String?
-  gymLat   Float?
-  gymLng   Float?
-  gymRadius Float?
+  userId            String   @id
+  gymName           String   @default("Iron Forge Gym")
+  ownerName         String?
+  gymLat            Float?
+  gymLng            Float?
+  gymRadius         Float?
+  lastStatusCheckAt DateTime?
 }
 
 model ActivityLog {
@@ -81,6 +110,9 @@ model ActivityLog {
   action    String
   details   String?
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model PersonalRecord {
@@ -91,5 +123,8 @@ model PersonalRecord {
   weight    Float
   reps      Int      @default(1)
   date      DateTime @default(now())
+
+  @@index([memberId])
+  @@index([memberId, date])
 }
 

@@ -9,6 +9,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { motion } from "motion/react";
 import Modal from "./Modal";
 
 type Variant = "danger" | "warning" | "success" | "info";
@@ -95,9 +96,14 @@ export default function ConfirmDialog({
             <X size={16} />
           </button>
         </div>
-        <div className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-full ${config.iconBg}`}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.05 }}
+          className={`mx-auto mb-4 flex size-14 items-center justify-center rounded-full ${config.iconBg}`}
+        >
           <Icon size={28} className={config.iconColor} />
-        </div>
+        </motion.div>
         <h3 className="text-center text-lg font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
           {title}
         </h3>
@@ -108,28 +114,34 @@ export default function ConfirmDialog({
         {!hideActions && <div className="mt-6 flex gap-3">
           {onConfirm ? (
             <>
-              <button
+              <motion.button
                 onClick={handleCancel}
                 disabled={loading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
                 className="flex-1 rounded-xl bg-white/[0.06] py-3 text-sm font-medium text-text-primary transition-colors hover:bg-white/[0.1] min-h-[48px] disabled:opacity-50"
               >
                 {cancelLabel}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 onClick={onConfirm}
                 disabled={loading}
-                className={`flex-1 rounded-xl ${config.confirmBg} py-3 text-sm font-medium text-white transition-all duration-200 ${config.confirmHover} active:scale-[0.98] disabled:opacity-50 min-h-[48px]`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                className={`flex-1 rounded-xl ${config.confirmBg} py-3 text-sm font-medium text-white transition-all duration-200 ${config.confirmHover} disabled:opacity-50 min-h-[48px]`}
               >
                 {loading ? `${confirmLabel}...` : confirmLabel}
-              </button>
+              </motion.button>
             </>
           ) : (
-            <button
+            <motion.button
               onClick={handleCancel}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               className="flex-1 rounded-xl bg-white/[0.06] py-3 text-sm font-medium text-text-primary transition-colors hover:bg-white/[0.1] min-h-[48px]"
             >
               {cancelLabel}
-            </button>
+            </motion.button>
           )}
         </div>}
       </div>

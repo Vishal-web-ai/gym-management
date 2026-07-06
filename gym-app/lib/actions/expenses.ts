@@ -1,34 +1,23 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { createExpenseSchema, updateExpenseSchema } from "@/lib/validations";
 import { logActivity } from "@/lib/actions/activity";
 
-let db: any;
-
-function prisma() {
-  if (!db) db = getPrisma();
-  return db;
-}
-
-async function getUserId() {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
-}
-
 export async function getExpenses() {
-  const userId = await getUserId();
-  return prisma().expense.findMany({
-    where: { userId },
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  return prisma.expense.findMany({
+    where: { userId: ownerId },
     orderBy: { date: "desc" },
   });
 }
 
 export async function createExpense(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const parsed = createExpenseSchema.parse({
     title: formData.get("title"),
     amount: formData.get("amount"),
@@ -36,9 +25,9 @@ export async function createExpense(formData: FormData) {
     date: formData.get("date"),
   });
 
-  const expense = await prisma().expense.create({
+  const expense = await prisma.expense.create({
     data: {
-      userId,
+      userId: ownerId,
       title: parsed.title,
       amount: parsed.amount,
       category: parsed.category,
@@ -54,7 +43,8 @@ export async function createExpense(formData: FormData) {
 }
 
 export async function updateExpense(formData: FormData) {
-  const userId = await getUserId();
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
   const parsed = updateExpenseSchema.parse({
     id: formData.get("id"),
     title: formData.get("title"),
@@ -63,8 +53,8 @@ export async function updateExpense(formData: FormData) {
     date: formData.get("date"),
   });
 
-  const expense = await prisma().expense.update({
-    where: { id: parsed.id, userId },
+  const expense = await prisma.expense.update({
+    where: { id: parsed.id, userId: ownerId },
     data: {
       title: parsed.title,
       amount: parsed.amount,
@@ -81,8 +71,9 @@ export async function updateExpense(formData: FormData) {
 }
 
 export async function deleteExpense(id: string) {
-  const userId = await getUserId();
-  await prisma().expense.delete({ where: { id, userId } });
+  const user = await requireAdmin();
+  const ownerId = user.gymOwnerId;
+  await prisma.expense.delete({ where: { id, userId: ownerId } });
   logActivity("expense.deleted", JSON.stringify({ id }));
   revalidatePath("/expenses");
   revalidatePath("/dashboard");

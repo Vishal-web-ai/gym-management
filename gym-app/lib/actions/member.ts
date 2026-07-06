@@ -1,33 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getPrisma } from "@/lib/prisma";
-import type { PrismaClient } from "@/lib/generated/prisma/client";
-
-let db: PrismaClient | null = null;
-
-function prisma() {
-  if (!db) db = getPrisma() as PrismaClient;
-  return db;
-}
+import { prisma } from "@/lib/prisma";
+import { getDistance } from "@/lib/geo";
 
 export async function findMemberByPhone(phone: string, gymUserId: string) {
-  return prisma().member.findFirst({
+  return prisma.member.findFirst({
     where: { phone, userId: gymUserId },
-    select: { id: true, firstName: true, status: true, endDate: true },
+    select: { id: true, firstName: true, status: true, endDate: true, image: true },
   });
 }
 
 export async function getGymConfigByUserId(userId: string) {
-  return prisma().gymConfig.findUnique({
+  return prisma.gymConfig.findUnique({
     where: { userId },
     select: { gymName: true, gymLat: true, gymLng: true, gymRadius: true },
   });
 }
 
-export async function getMemberDashboard(memberId: string) {
-  const member = await prisma().member.findUnique({
-    where: { id: memberId },
+export async function getMemberDashboard(memberId: string, gymUserId: string) {
+  const member = await prisma.member.findUnique({
+    where: { id: memberId, userId: gymUserId },
     include: { plan: true },
   });
   if (!member) return null;
@@ -41,28 +34,21 @@ export async function getMemberDashboard(memberId: string) {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const totalAttendance = await prisma().attendance.count({
-    where: { memberId },
-  });
-
-  const todayCheckedIn = await prisma().attendance.findFirst({
-    where: {
-      memberId,
-      checkInTime: { gte: startOfToday },
-    },
-  });
-
-  const allAttendances = await prisma().attendance.findMany({
-    where: { memberId },
-    orderBy: { checkInTime: "desc" },
-  });
-
-  const recentAttendances = allAttendances.slice(0, 30);
-
-  const personalRecords = await prisma().personalRecord.findMany({
-    where: { memberId },
-    orderBy: { date: "desc" },
-  });
+  const [totalAttendance, todayCheckedIn, allAttendances, personalRecords] = await Promise.all([
+    prisma.attendance.count({ where: { memberId } }),
+    prisma.attendance.findFirst({
+      where: { memberId, checkInTime: { gte: startOfToday } },
+    }),
+    prisma.attendance.findMany({
+      where: { memberId },
+      orderBy: { checkInTime: "desc" },
+      take: 30,
+    }),
+    prisma.personalRecord.findMany({
+      where: { memberId },
+      orderBy: { date: "desc" },
+    }),
+  ]);
 
   return {
     member: {
@@ -72,24 +58,26 @@ export async function getMemberDashboard(memberId: string) {
       status: member.status,
       createdAt: member.createdAt,
       endDate: member.endDate,
+      image: member.image,
       plan: member.plan,
     },
     stats: {
       totalAttendance,
       todayCheckedIn: !!todayCheckedIn,
     },
-    recentAttendances,
+    recentAttendances: allAttendances,
     personalRecords,
   };
 }
 
-export async function getAttendanceCalendar(memberId: string, year: number, month: number) {
+export async function getAttendanceCalendar(memberId: string, gymUserId: string, year: number, month: number) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0, 23, 59, 59, 999);
 
-  const records = await prisma().attendance.findMany({
+  const records = await prisma.attendance.findMany({
     where: {
       memberId,
+      userId: gymUserId,
       checkInTime: { gte: start, lte: end },
     },
     select: { checkInTime: true },
@@ -102,9 +90,9 @@ export async function getAttendanceCalendar(memberId: string, year: number, mont
   }));
 }
 
-export async function getWeeklyStreak(memberId: string) {
-  const attendances = await prisma().attendance.findMany({
-    where: { memberId },
+export async function getWeeklyStreak(memberId: string, gymUserId: string) {
+  const attendances = await prisma.attendance.findMany({
+    where: { memberId, userId: gymUserId },
     select: { checkInTime: true },
     orderBy: { checkInTime: "desc" },
   });
@@ -124,17 +112,21 @@ export async function getWeeklyStreak(memberId: string) {
     })
     .sort((a, b) => b.getTime() - a.getTime());
 
-  let currentStreak = 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  for (let i = 0; i < sortedDays.length; i++) {
-    const expected = new Date(today.getTime() - currentStreak * 86400000);
-    expected.setHours(0, 0, 0, 0);
-    if (sortedDays[i].getTime() === expected.getTime()) {
-      currentStreak++;
-    } else {
-      break;
+  // current streak: consecutive days ending at the most recent check-in
+  let currentStreak = 0;
+  if (sortedDays.length > 0) {
+    const diffFromToday = Math.round((today.getTime() - sortedDays[0].getTime()) / 86400000);
+    if (diffFromToday <= 1) {
+      for (let i = 0; i < sortedDays.length; i++) {
+        const expected = new Date(sortedDays[0].getTime() - currentStreak * 86400000);
+        expected.setHours(0, 0, 0, 0);
+        if (sortedDays[i].getTime() === expected.getTime()) {
+          currentStreak++;
+        } else break;
+      }
     }
   }
 
@@ -154,48 +146,62 @@ export async function getWeeklyStreak(memberId: string) {
   return { current: currentStreak, best: bestStreak };
 }
 
-export async function getPaymentHistory(memberId: string) {
-  return prisma().payment.findMany({
-    where: { memberId },
+export async function getPaymentHistory(memberId: string, gymUserId: string) {
+  return prisma.payment.findMany({
+    where: { memberId, userId: gymUserId },
     orderBy: { createdAt: "desc" },
     select: { id: true, amount: true, mode: true, status: true, createdAt: true },
   });
 }
 
-export async function recordPR(memberId: string, exercise: string, weight: number, reps: number) {
-  const record = await prisma().personalRecord.create({
+export async function recordPR(memberId: string, gymUserId: string, exercise: string, weight: number, reps: number) {
+  // ponytail: verify ownership before create (PR table has no userId)
+  const m = await prisma.member.findUnique({ where: { id: memberId, userId: gymUserId }, select: { id: true } });
+  if (!m) throw new Error("Member not found");
+  const record = await prisma.personalRecord.create({
     data: { memberId, exercise, weight, reps },
   });
   revalidatePath(`/member`);
   return record;
 }
 
-export async function deletePR(prId: string) {
-  await prisma().personalRecord.delete({ where: { id: prId } });
+export async function deletePR(prId: string, gymUserId: string) {
+  // ponytail: relation filter verifies ownership in the delete query itself
+  await prisma.personalRecord.delete({ where: { id: prId, member: { userId: gymUserId } } });
   revalidatePath(`/member`);
 }
 
 export async function updatePersonalRecord(
   prId: string,
+  gymUserId: string,
   data: { exercise: string; weight: number; reps: number }
 ) {
-  await prisma().personalRecord.update({
-    where: { id: prId },
+  await prisma.personalRecord.update({
+    where: { id: prId, member: { userId: gymUserId } },
     data: { exercise: data.exercise, weight: data.weight, reps: data.reps },
   });
   revalidatePath(`/member`);
 }
 
-export async function getPRs(memberId: string) {
-  return prisma().personalRecord.findMany({
-    where: { memberId },
+export async function getPRs(memberId: string, gymUserId: string) {
+  return prisma.personalRecord.findMany({
+    where: { memberId, member: { userId: gymUserId } },
     orderBy: { date: "desc" },
   });
 }
 
-export async function checkInMember(memberId: string) {
-  const member = await prisma().member.findUnique({ where: { id: memberId } });
+export async function checkInMember(memberId: string, gymUserId: string) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const [member, existing] = await Promise.all([
+    prisma.member.findUnique({ where: { id: memberId, userId: gymUserId } }),
+    prisma.attendance.findFirst({
+      where: { memberId, checkInTime: { gte: startOfToday } },
+    }),
+  ]);
   if (!member) throw new Error("Member not found");
+  if (existing) throw new Error("Already checked in today");
   if (member.status === "Frozen") throw new Error("Membership is frozen");
   if (member.status === "Expired") throw new Error("Membership has expired");
   if (member.status === "Overdue" && member.endDate) {
@@ -203,18 +209,7 @@ export async function checkInMember(memberId: string) {
     if (new Date() > graceEnd) throw new Error("Membership has expired");
   }
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const existing = await prisma().attendance.findFirst({
-    where: {
-      memberId,
-      checkInTime: { gte: startOfToday },
-    },
-  });
-  if (existing) throw new Error("Already checked in today");
-
-  const record = await prisma().attendance.create({
+  const record = await prisma.attendance.create({
     data: { userId: member.userId, memberId, memberName: member.firstName },
   });
 
@@ -222,52 +217,41 @@ export async function checkInMember(memberId: string) {
   return record;
 }
 
-export async function hasCheckedInToday(memberId: string) {
+export async function hasCheckedInToday(memberId: string, gymUserId: string) {
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const existing = await prisma().attendance.findFirst({
+  const existing = await prisma.attendance.findFirst({
     where: {
       memberId,
+      userId: gymUserId,
       checkInTime: { gte: startOfToday },
     },
   });
   return !!existing;
 }
 
-export async function getMemberById(memberId: string) {
-  return prisma().member.findUnique({
-    where: { id: memberId },
+export async function getMemberById(memberId: string, gymUserId: string) {
+  return prisma.member.findUnique({
+    where: { id: memberId, userId: gymUserId },
     select: {
       id: true,
       firstName: true,
       status: true,
       userId: true,
       endDate: true,
+      image: true,
     },
   });
 }
 
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3;
-  const phi1 = (lat1 * Math.PI) / 180;
-  const phi2 = (lat2 * Math.PI) / 180;
-  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
-  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
-    Math.cos(phi1) * Math.cos(phi2) *
-    Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
 export async function checkInMemberWithGPS(
   memberId: string,
+  gymUserId: string,
   memberLat?: number,
   memberLng?: number,
 ) {
-  const member = await prisma().member.findUnique({ where: { id: memberId } });
+  const member = await prisma.member.findUnique({ where: { id: memberId, userId: gymUserId } });
   if (!member) throw new Error("Member not found");
   if (member.status === "Frozen") throw new Error("Membership is frozen");
   if (member.status === "Expired") throw new Error("Membership has expired");
@@ -276,9 +260,16 @@ export async function checkInMemberWithGPS(
     if (new Date() > graceEnd) throw new Error("Membership has expired");
   }
 
-  const config = await prisma().gymConfig.findUnique({
-    where: { userId: member.userId },
-  });
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const [config, existing] = await Promise.all([
+    prisma.gymConfig.findUnique({ where: { userId: member.userId } }),
+    prisma.attendance.findFirst({
+      where: { memberId, checkInTime: { gte: startOfToday } },
+    }),
+  ]);
+  if (existing) throw new Error("Already checked in today");
 
   if (config && config.gymLat !== null && config.gymLng !== null && config.gymRadius !== null) {
     if (memberLat === undefined || memberLng === undefined) {
@@ -293,18 +284,7 @@ export async function checkInMemberWithGPS(
     }
   }
 
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const existing = await prisma().attendance.findFirst({
-    where: {
-      memberId,
-      checkInTime: { gte: startOfToday },
-    },
-  });
-  if (existing) throw new Error("Already checked in today");
-
-  const record = await prisma().attendance.create({
+  const record = await prisma.attendance.create({
     data: { userId: member.userId, memberId, memberName: member.firstName },
   });
 

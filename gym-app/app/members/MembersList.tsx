@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Search, Phone, ChevronRight, Loader2, Download, Upload, Smartphone, CheckCircle, X } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Member } from "@/lib/types";
 import { getMembersPaginated, exportMembersCSV, getOverdueMembers, importMembersCSV } from "@/lib/actions/members";
 import { overdueBulkMessage } from "@/lib/whatsapp";
@@ -17,20 +19,41 @@ const filterPill: Record<string, string> = {
   Expired: "border-slate-500/20 text-slate-400",
 };
 
+const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
+
 export default function MembersList({
   initial,
   initialHasMore,
+  gymName,
 }: {
   initial: Member[];
   initialHasMore: boolean;
+  gymName?: string;
 }) {
-  const [members, setMembers] = useState<Member[]>(initial);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const filtered = members.filter((m) => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["members"],
+    queryFn: ({ pageParam = 0 }) => getMembersPaginated(pageParam, 20),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      return lastPage.hasMore ? lastPageParam + 20 : undefined;
+    },
+    initialData: {
+      pages: [{ members: initial as any, total: 0, hasMore: initialHasMore }],
+      pageParams: [0],
+    },
+  });
+
+  const members = data?.pages.flatMap((p) => p.members) ?? [];
+
+  const filtered = members.filter((m: Member) => {
     const name = m.firstName.toLowerCase();
     const q = search.toLowerCase();
     return (
@@ -39,7 +62,6 @@ export default function MembersList({
     );
   });
 
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
   const [reminderSent, setReminderSent] = useState(false);
@@ -47,20 +69,8 @@ export default function MembersList({
   const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  async function loadMore() {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const result = await getMembersPaginated(members.length, 20);
-      setMembers((prev) => [...prev, ...result.members]);
-      setHasMore(result.hasMore);
-    } catch (e) {
-      setLoadError(e instanceof Error ? e.message : "Failed to load more members");
-    }
-    setLoading(false);
-  }
 
   async function handleExport() {
     setExporting(true);
@@ -79,23 +89,32 @@ export default function MembersList({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end gap-2">
-        <button
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.1 }}
+        className="flex justify-center gap-2"
+      >
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setShowImport(true)}
-          className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-text-muted hover:text-text-primary transition-colors min-h-[44px]"
+          className="flex items-center gap-2 rounded-xl bg-primary/15 px-4 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/20 min-h-[44px]"
         >
           <Upload size={16} />
           Import CSV
-        </button>
-        <button
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.97 }}
           onClick={handleExport}
           disabled={exporting}
-          className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-text-muted hover:text-text-primary transition-colors min-h-[44px]"
+          className="flex items-center gap-2 rounded-xl bg-primary/15 px-4 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/20 min-h-[44px]"
         >
           <Download size={16} />
           {exporting ? "Exporting..." : "Export CSV"}
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
 
       <Modal open={showImport} onClose={() => { setShowImport(false); setImportResult(null); }} className="max-w-md">
         <div className="glass-card rounded-2xl p-6">
@@ -138,8 +157,6 @@ export default function MembersList({
               try {
                 const result = await importMembersCSV(formData);
                 setImportResult(result);
-                setMembers([]);
-                setHasMore(false);
               } catch (e) {
                 setImportResult({
                   created: 0,
@@ -187,7 +204,13 @@ export default function MembersList({
           )}
         </div>
       </Modal>
-      <div className="relative animate-fade-in">
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.15 }}
+        className="relative"
+      >
         <Search
           size={18}
           className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
@@ -199,97 +222,123 @@ export default function MembersList({
           onChange={(e) => setSearch(e.target.value)}
           className="w-full rounded-xl bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
         />
-      </div>
+      </motion.div>
 
-      {filter === "Overdue" && (
-        <div className="animate-slide-up">
-          {reminderError && (
-            <p className="mb-2 text-xs text-red-400">{reminderError}</p>
-          )}
-          {reminderSent ? (
-            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 mb-2">
-              <CheckCircle size={16} />
-              WhatsApp opened with reminder message for overdue members.
-            </div>
-          ) : (
-            <button
-              onClick={async () => {
-                setSendingReminder(true);
-                setReminderError("");
-                try {
-                  const members = await getOverdueMembers();
-                  if (members.length === 0) {
-                    setReminderError("No overdue members found.");
-                    setSendingReminder(false);
-                    return;
+      <AnimatePresence>
+        {filter === "Overdue" && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ ...springGentle }}
+          >
+            {reminderError && (
+              <p className="mb-2 text-xs text-red-400">{reminderError}</p>
+            )}
+            {reminderSent ? (
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400 mb-2">
+                <CheckCircle size={16} />
+                WhatsApp opened with reminder message for overdue members.
+              </div>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={async () => {
+                  setSendingReminder(true);
+                  setReminderError("");
+                  try {
+                    const members = await getOverdueMembers();
+                    if (members.length === 0) {
+                      setReminderError("No overdue members found.");
+                      setSendingReminder(false);
+                      return;
+                    }
+                    const text = overdueBulkMessage(members, gymName);
+                    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                    setReminderSent(true);
+                  } catch (e) {
+                    setReminderError(e instanceof Error ? e.message : "Failed to load overdue members");
                   }
-                  const text = overdueBulkMessage(members);
-                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-                  setReminderSent(true);
-                } catch (e) {
-                  setReminderError(e instanceof Error ? e.message : "Failed to load overdue members");
-                }
-                setSendingReminder(false);
-              }}
-              disabled={sendingReminder}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary/30 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-            >
-              {sendingReminder ? <Loader2 size={16} className="animate-spin" /> : <Smartphone size={16} />}
-              {sendingReminder ? "Loading..." : "Send Bulk WhatsApp Reminder"}
-            </button>
-          )}
-        </div>
-      )}
+                  setSendingReminder(false);
+                }}
+                disabled={sendingReminder}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-medium text-primary disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              >
+                {sendingReminder ? <Loader2 size={16} className="animate-spin" /> : <Smartphone size={16} />}
+                {sendingReminder ? "Loading..." : "Send Bulk WhatsApp Reminder"}
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.2 }}
+        className="flex gap-2 overflow-x-auto pb-1"
+      >
         {["All", "Active", "Overdue", "Frozen", "Expired"].map((f) => (
-          <button
+          <motion.button
             key={f}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => setFilter(f)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 min-h-[40px] ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 min-h-[40px] ${
               filter === f
                 ? "bg-primary text-white shadow-lg shadow-primary/20"
                 : `${filterPill[f]} border border-white/[0.06] bg-white/[0.03] text-text-muted hover:bg-white/[0.06] hover:text-text-primary`
             }`}
           >
             {f}
-          </button>
+          </motion.button>
         ))}
-      </div>
+      </motion.div>
 
       <div className="space-y-3">
         {filtered.length === 0 && (
-          <div className="glass-card rounded-xl p-8 text-center animate-scale-in">
-            <p className="text-sm text-text-secondary">No members found.</p>
-          </div>
-        )}
-        {filtered.map((member, i) => {
-          const del = Math.min(i + 1, 4);
-          const name = member.firstName;
-          return (
-          <div
-            key={member.id}
-            className="group relative"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ ...springGentle, delay: 0.25 }}
+            className="glass-card rounded-xl p-8 text-center"
           >
-            <Link
-              href={`/members/${member.id}`}
-              className={`glass-card flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97] animate-slide-up delay-${del}`}
-            >
-              <ProfilePhoto image={member.image} name={member.firstName} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-text-primary">
-                  {name}
-                </p>
-                <span className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
-                  <Phone size={13} />
-                  {member.phone}
-                </span>
-              </div>
-              <ChevronRight size={18} className="text-text-muted" />
-            </Link>
-          </div>
-          );
-        })}
+            <p className="text-sm text-text-secondary">No members found.</p>
+          </motion.div>
+        )}
+        <AnimatePresence mode="popLayout">
+          {filtered.map((member: Member, i: number) => {
+            const name = member.firstName;
+            return (
+              <motion.div
+                key={member.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ ...springGentle, delay: 0.3 + i * 0.04 }}
+                layout
+              >
+                <Link
+                  href={`/members/${member.id}`}
+                  className="glass-card flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]"
+                >
+                  <ProfilePhoto image={member.image} name={member.firstName} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-text-primary">
+                      {name}
+                    </p>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
+                      <Phone size={13} />
+                      {member.phone}
+                    </span>
+                  </div>
+                  <ChevronRight size={18} className="text-text-muted" />
+                </Link>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
         {loadError && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-400 text-center">
@@ -297,17 +346,29 @@ export default function MembersList({
           </div>
         )}
 
-        {hasMore && (
-          <div className="flex justify-center pt-2">
-            <button
-              onClick={loadMore}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-6 py-3 text-sm font-medium text-text-muted transition-all duration-200 hover:bg-white/[0.08] hover:text-text-primary disabled:opacity-50 min-h-[48px]"
+        {hasNextPage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="flex justify-center pt-2"
+          >
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => {
+                setLoadError(null);
+                fetchNextPage().catch((e) => {
+                  setLoadError(e instanceof Error ? e.message : "Failed to load more members");
+                });
+              }}
+              disabled={isFetchingNextPage}
+              className="flex items-center gap-2 rounded-xl bg-white/[0.04] px-6 py-3 text-sm font-medium text-text-muted hover:bg-white/[0.08] hover:text-text-primary disabled:opacity-50 min-h-[48px]"
             >
-              {loading && <Loader2 size={16} className="animate-spin" />}
-              {loading ? "Loading..." : "Load More"}
-            </button>
-          </div>
+              {isFetchingNextPage && <Loader2 size={16} className="animate-spin" />}
+              {isFetchingNextPage ? "Loading..." : "Load More"}
+            </motion.button>
+          </motion.div>
         )}
       </div>
     </div>
