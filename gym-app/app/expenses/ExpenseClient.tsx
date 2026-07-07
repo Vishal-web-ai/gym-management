@@ -149,24 +149,24 @@ export default function ExpenseClient({
                   placeholder="Title"
                   className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
                 />
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <input
-                      name="amount"
-                      type="number"
-                      step="0.01"
-                      required
-                      placeholder="Amount"
-                      autoComplete="off"
-                      className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
-                    />
-                    <input
-                      name="date"
-                      type="date"
-                      required
-                      defaultValue={new Date().toISOString().split("T")[0]}
-                      className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06] min-h-[48px]"
-                    />
-                  </div>
+                <div className="flex gap-3">
+                  <input
+                    name="amount"
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="Amount"
+                    autoComplete="off"
+                    className="flex-1 rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
+                  />
+                  <input
+                    name="date"
+                    type="date"
+                    required
+                    defaultValue={new Date().toISOString().split("T")[0]}
+                    className="flex-1 rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06] min-h-[48px]"
+                  />
+                </div>
                 <Select
                   name="category"
                   required
@@ -234,7 +234,7 @@ export default function ExpenseClient({
                     defaultValue={expense.title}
                     className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
                   />
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex gap-3">
                     <input
                       name="amount"
                       type="number"
@@ -242,14 +242,14 @@ export default function ExpenseClient({
                       required
                       defaultValue={expense.amount}
                       autoComplete="off"
-                      className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
+                      className="flex-1 rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
                     />
                     <input
                       name="date"
                       type="date"
                       required
                       defaultValue={new Date(expense.date).toISOString().split("T")[0]}
-                      className="w-full rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06] min-h-[48px]"
+                      className="flex-1 rounded-lg bg-white/[0.04] px-4 py-3 text-sm text-text-primary outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06] min-h-[48px]"
                     />
                   </div>
                   <Select

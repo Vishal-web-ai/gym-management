@@ -198,7 +198,7 @@ export default function SettingsClient({
                     exit={{ opacity: 0, height: 0 }}
                     className="rounded-lg bg-white/[0.03] p-3 space-y-3"
                   >
-                    <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex gap-2">
                       <div className="flex-1 space-y-1">
                         <label className="text-xs text-text-muted">Name</label>
                         <input
@@ -207,7 +207,7 @@ export default function SettingsClient({
                           className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
                         />
                       </div>
-                      <div className="sm:w-20 space-y-1">
+                      <div className="w-20 space-y-1">
                         <label className="text-xs text-text-muted">Price</label>
                         <input
                           type="number"
@@ -216,7 +216,7 @@ export default function SettingsClient({
                           className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none"
                         />
                       </div>
-                      <div className="sm:w-18 space-y-1">
+                      <div className="w-18 space-y-1">
                         <label className="text-xs text-text-muted">Months</label>
                         <input
                           type="number"
@@ -296,7 +296,7 @@ export default function SettingsClient({
               transition={{ ...springGentle }}
               className="mt-2 rounded-lg bg-white/[0.03] p-3 space-y-3 overflow-hidden"
             >
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2">
                 <div className="flex-1 space-y-1">
                   <label className="text-xs text-text-muted">Name</label>
                   <input
@@ -306,7 +306,7 @@ export default function SettingsClient({
                     className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
                   />
                 </div>
-                <div className="sm:w-20 space-y-1">
+                <div className="w-20 space-y-1">
                   <label className="text-xs text-text-muted">Price</label>
                   <input
                     type="number"
@@ -316,7 +316,7 @@ export default function SettingsClient({
                     className="w-full rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted"
                   />
                 </div>
-                <div className="sm:w-18 space-y-1">
+                <div className="w-18 space-y-1">
                   <label className="text-xs text-text-muted">Months</label>
                   <input
                     type="number"
@@ -379,7 +379,7 @@ export default function SettingsClient({
           )}
         </div>
         <p className="text-xs text-text-muted">Set your gym&apos;s GPS coordinates so the member app can verify check-ins via location.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="block text-xs text-text-muted mb-1">Latitude</label>
             <input
@@ -497,7 +497,7 @@ export default function SettingsClient({
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex gap-3">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
