@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -89,6 +89,7 @@ function MemberContent() {
   const [gpsStatus, setGpsStatus] = useState<"idle" | "requesting" | "verified" | "denied" | "far">("idle");
   const [distance, setDistance] = useState<number | null>(null);
   const [gymConfig, setGymConfig] = useState<{ gymLat: number; gymLng: number; gymRadius: number } | null>(null);
+  const lastPos = useRef<{ lat: number; lng: number } | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [checkInError, setCheckInError] = useState("");
@@ -173,6 +174,7 @@ function MemberContent() {
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         if (cancelled) return;
+        lastPos.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         const R = 6371e3;
         const lat1 = (pos.coords.latitude * Math.PI) / 180;
         const lat2 = (gymConfig.gymLat * Math.PI) / 180;
@@ -198,16 +200,18 @@ function MemberContent() {
     setCheckingIn(true);
     setCheckInError("");
     try {
-      let lat: number | undefined;
-      let lng: number | undefined;
-      if (navigator.geolocation) {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, timeout: 10000,
+      let lat = lastPos.current?.lat;
+      let lng = lastPos.current?.lng;
+      if (lat === undefined || lng === undefined) {
+        if (navigator.geolocation) {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true, timeout: 10000,
+            });
           });
-        });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        }
       }
       await checkInMemberWithGPS(identified.id, gymUserId!, lat, lng);
       setCheckInSuccess(true);
