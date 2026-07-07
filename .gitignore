@@ -4,3 +4,4 @@
 build_output.txt
 .next
 .playwright-mcp/
+.vercel

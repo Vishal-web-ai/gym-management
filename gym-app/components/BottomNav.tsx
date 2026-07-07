@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserCheck, Receipt, Settings, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Receipt, DollarSign } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
 import { usePrefetch } from "@/lib/hooks/usePrefetch";
@@ -13,7 +13,6 @@ const navItems = [
   { href: "/payments", label: "Payments", icon: DollarSign },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/attendance", label: "Attendance", icon: UserCheck },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const spring = { type: "spring" as const, stiffness: 500, damping: 35, mass: 0.8 };
@@ -44,7 +43,7 @@ export default function BottomNav() {
                 href={href}
                 prefetch={true}
                 onPointerDown={() => prefetch(href)}
-                className="relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs min-h-[48px] min-w-[48px] justify-center"
+                className="relative flex flex-col items-center gap-0.5 px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs min-h-[48px] min-w-[48px] justify-center"
               >
                 {isActive && (
                   <span className="absolute -top-px left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary" />
@@ -54,7 +53,7 @@ export default function BottomNav() {
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
                   <Icon
-                    size={22}
+                    size={20}
                     className={`transition-colors duration-200 ${isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"}`}
                   />
                 </motion.div>

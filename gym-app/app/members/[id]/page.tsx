@@ -74,7 +74,7 @@ export default async function MemberDetailPage({
   const memberName = member.firstName;
 
   return (
-    <div className="space-y-4 p-3 animate-fade-in">
+    <div className="space-y-4 p-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <Link
           href="/members"
