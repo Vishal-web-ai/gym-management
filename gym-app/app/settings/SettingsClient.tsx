@@ -37,6 +37,7 @@ export default function SettingsClient({
   const [restoring, setRestoring] = useState(false);
   const [restoreResult, setRestoreResult] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
+  const [locationEditing, setLocationEditing] = useState(false);
   const [locationStatus, setLocationStatus] = useState<"idle" | "saving" | "saved">("idle");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -358,6 +359,24 @@ export default function SettingsClient({
             <MapPin size={16} />
             Gym Location (GPS)
           </h2>
+          {!locationEditing ? (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setLocationEditing(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-primary/10 px-3 py-2 text-xs font-medium text-primary min-h-[36px]"
+            >
+              <Edit3 size={14} />
+              Edit
+            </motion.button>
+          ) : (
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setLocationEditing(false)}
+              className="rounded-xl bg-white/[0.06] px-3 py-2 text-xs font-medium text-text-muted min-h-[36px]"
+            >
+              Cancel
+            </motion.button>
+          )}
         </div>
         <p className="text-xs text-text-muted">Set your gym&apos;s GPS coordinates so the member app can verify check-ins via location.</p>
         <div className="grid grid-cols-3 gap-3">
@@ -367,8 +386,13 @@ export default function SettingsClient({
               type="number" step="any"
               defaultValue={config.gymLat ?? ""}
               id="gym-lat"
+              disabled={!locationEditing}
               placeholder="e.g. 19.0760"
-              className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+              className={`w-full rounded-lg px-3 py-2.5 text-sm placeholder-text-muted outline-none transition-colors ${
+                locationEditing
+                  ? "bg-white/[0.04] text-text-primary"
+                  : "bg-white/[0.02] text-text-muted cursor-not-allowed"
+              }`}
             />
           </div>
           <div>
@@ -377,8 +401,13 @@ export default function SettingsClient({
               type="number" step="any"
               defaultValue={config.gymLng ?? ""}
               id="gym-lng"
+              disabled={!locationEditing}
               placeholder="e.g. 72.8777"
-              className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+              className={`w-full rounded-lg px-3 py-2.5 text-sm placeholder-text-muted outline-none transition-colors ${
+                locationEditing
+                  ? "bg-white/[0.04] text-text-primary"
+                  : "bg-white/[0.02] text-text-muted cursor-not-allowed"
+              }`}
             />
           </div>
           <div>
@@ -387,47 +416,59 @@ export default function SettingsClient({
               type="number"
               defaultValue={config.gymRadius ?? ""}
               id="gym-radius"
+              disabled={!locationEditing}
               placeholder="e.g. 100"
-              className="w-full rounded-lg bg-white/[0.04] px-3 py-2.5 text-sm text-text-primary placeholder-text-muted outline-none"
+              className={`w-full rounded-lg px-3 py-2.5 text-sm placeholder-text-muted outline-none transition-colors ${
+                locationEditing
+                  ? "bg-white/[0.04] text-text-primary"
+                  : "bg-white/[0.02] text-text-muted cursor-not-allowed"
+              }`}
             />
           </div>
         </div>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          disabled={locationStatus !== "idle"}
-          onClick={async () => {
-            const lat = parseFloat((document.getElementById("gym-lat") as HTMLInputElement).value);
-            const lng = parseFloat((document.getElementById("gym-lng") as HTMLInputElement).value);
-            const radius = parseFloat((document.getElementById("gym-radius") as HTMLInputElement).value);
-            if (isNaN(lat) || isNaN(lng) || isNaN(radius)) return;
-            setLocationStatus("saving");
-            try {
-              await updateGymLocation(lat, lng, radius);
-              setLocationStatus("saved");
-              setTimeout(() => setLocationStatus("idle"), 2000);
-            } catch {
-              setLocationStatus("idle");
-            }
-          }}
-          className={`rounded-xl px-4 py-2.5 text-xs font-medium transition-all ${
-            locationStatus === "saved"
-              ? "bg-emerald-500/20 text-emerald-400"
-              : "bg-primary/10 text-primary hover:bg-primary/20"
-          } disabled:opacity-60`}
-        >
-          <motion.span
-            key={locationStatus}
-            initial={{ opacity: 0, y: 4 }}
+        {locationEditing && (
+          <motion.button
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-1.5"
+            whileTap={{ scale: 0.97 }}
+            disabled={locationStatus !== "idle"}
+            onClick={async () => {
+              const lat = parseFloat((document.getElementById("gym-lat") as HTMLInputElement).value);
+              const lng = parseFloat((document.getElementById("gym-lng") as HTMLInputElement).value);
+              const radius = parseFloat((document.getElementById("gym-radius") as HTMLInputElement).value);
+              if (isNaN(lat) || isNaN(lng) || isNaN(radius)) return;
+              setLocationStatus("saving");
+              try {
+                await updateGymLocation(lat, lng, radius);
+                setLocationStatus("saved");
+                setTimeout(() => {
+                  setLocationStatus("idle");
+                  setLocationEditing(false);
+                }, 1500);
+              } catch {
+                setLocationStatus("idle");
+              }
+            }}
+            className={`rounded-xl px-4 py-2.5 text-xs font-medium transition-all ${
+              locationStatus === "saved"
+                ? "bg-emerald-500/20 text-emerald-400"
+                : "bg-primary/10 text-primary hover:bg-primary/20"
+            } disabled:opacity-60`}
           >
-            {locationStatus === "saving" && (
-              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            )}
-            {locationStatus === "saved" && <Check size={14} />}
-            {locationStatus === "saving" ? "Saving..." : locationStatus === "saved" ? "Saved" : "Save Location"}
-          </motion.span>
-        </motion.button>
+            <motion.span
+              key={locationStatus}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-1.5"
+            >
+              {locationStatus === "saving" && (
+                <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              )}
+              {locationStatus === "saved" && <Check size={14} />}
+              {locationStatus === "saving" ? "Saving..." : locationStatus === "saved" ? "Saved" : "Save Location"}
+            </motion.span>
+          </motion.button>
+        )}
       </motion.div>
 
       <motion.div
