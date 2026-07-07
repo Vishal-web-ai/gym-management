@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, UserCheck, Dumbbell, Receipt, Settings, DollarSign } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
+import { usePrefetch } from "@/lib/hooks/usePrefetch";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const spring = { type: "spring" as const, stiffness: 400, damping: 30, mass: 0.8
 export default function SidebarNav() {
   const pathname = usePathname();
   const { isSignedIn } = useUser();
+  const prefetch = usePrefetch();
 
   const isAuthPage =
     pathname === "/" ||
@@ -58,6 +60,8 @@ export default function SidebarNav() {
             >
               <Link
                 href={href}
+                prefetch={true}
+                onPointerEnter={() => prefetch(href)}
                 className={`relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium min-h-[44px] ${
                   isActive
                     ? "glass-card-active text-primary"

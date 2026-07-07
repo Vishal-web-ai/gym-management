@@ -41,6 +41,7 @@ export default function MembersList({
   } = useInfiniteQuery({
     queryKey: ["members"],
     queryFn: ({ pageParam = 0 }) => getMembersPaginated(pageParam, 20),
+    staleTime: 5 * 60 * 1000,
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       return lastPage.hasMore ? lastPageParam + 20 : undefined;

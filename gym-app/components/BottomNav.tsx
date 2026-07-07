@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, UserCheck, Receipt, Settings, DollarSign } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
+import { usePrefetch } from "@/lib/hooks/usePrefetch";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const spring = { type: "spring" as const, stiffness: 500, damping: 35, mass: 0.8
 export default function BottomNav() {
   const pathname = usePathname();
   const { isSignedIn } = useUser();
+  const prefetch = usePrefetch();
 
   const isAuthPage =
     pathname === "/" ||
@@ -40,6 +42,8 @@ export default function BottomNav() {
               <Link
                 key={href}
                 href={href}
+                prefetch={true}
+                onPointerDown={() => prefetch(href)}
                 className="relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs min-h-[48px] min-w-[48px] justify-center"
               >
                 {isActive && (
