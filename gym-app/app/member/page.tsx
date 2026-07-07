@@ -588,8 +588,10 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
   const now = new Date();
   const [calYear, setCalYear] = useState(now.getFullYear());
   const [calMonth, setCalMonth] = useState(now.getMonth() + 1);
+  const [calPending, setCalPending] = useState(false);
 
   useEffect(() => {
+    setCalPending(true);
     Promise.all([
       getMemberDashboard(memberId, gymUserId),
       getWeeklyStreak(memberId, gymUserId, calYear, calMonth),
@@ -599,6 +601,8 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
       setStreak(s);
       setCalendar(c);
       if (d) setPrs(d.personalRecords);
+    }).finally(() => {
+      setCalPending(false);
       setLoading(false);
     });
   }, [memberId, gymUserId, calYear, calMonth, checkInVersion]);
@@ -663,7 +667,7 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
   const calendarDates: (number | null)[] = Array(firstDay).fill(null);
   for (let i = 1; i <= daysInMonth; i++) calendarDates.push(i);
 
-  const checkedInDates = new Set(calendar.map((c) => c.date));
+  const checkedInDates = calPending ? new Set<number>() : new Set(calendar.map((c) => c.date));
 
   return (
     <div className="space-y-4 p-4">
@@ -689,7 +693,7 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
       </div>
 
       <AnimatedCard delay={0.2} hover={false}>
-        <div className="glass-card rounded-xl p-4 space-y-3">
+        <div className={`glass-card rounded-xl p-4 space-y-3 transition-opacity duration-300 ${calPending ? "opacity-50" : ""}`}>
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted" style={{ fontFamily: "var(--font-display)" }}>
               <Clock size={14} />
@@ -702,6 +706,7 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => {
+                  setCalPending(true);
                   if (calMonth === 1) { setCalYear((y) => y - 1); setCalMonth(12); }
                   else setCalMonth((m) => m - 1);
                 }}
@@ -710,6 +715,7 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => {
+                  setCalPending(true);
                   if (calMonth === 12) { setCalYear((y) => y + 1); setCalMonth(1); }
                   else setCalMonth((m) => m + 1);
                 }}
