@@ -225,7 +225,7 @@ export default function MemberDetailClient({
           className="space-y-3"
         >
           {hasPaymentThisMonth ? (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-2">
+            <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/15 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-2 mt-3">
               <CheckCircle size={16} />
               Payment already logged this month
             </div>

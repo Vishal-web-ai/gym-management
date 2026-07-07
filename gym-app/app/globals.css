@@ -186,6 +186,10 @@ select {
   padding-right: 40px;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
 }
@@ -222,9 +226,15 @@ select {
 
 /* ── Clerk UserButton (popover dropdown) ── */
 
+.dashboard-user-btn .cl-rootBox {
+  width: 100% !important;
+  max-width: 2.75rem !important;
+  margin-top: 0em !important;
+}
+
 .cl-avatarBox {
-  width: 2.25rem !important;
-  height: 2.25rem !important;
+  width: 2.75rem !important;
+  height: 2.75rem !important;
   border-radius: 9999px !important;
   box-shadow: 0 0 0 1px rgba(249,115,22,0.15) !important;
   transition: all 0.2s ease !important;

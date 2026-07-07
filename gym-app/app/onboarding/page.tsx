@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Dumbbell, ArrowRight, ArrowLeft, Plus, Trash2 } from "lucide-react";
-import { checkOnboardingStatus, saveOwnerName, saveGymName, savePlan } from "@/lib/actions/onboarding";
+import { Check, Dumbbell, ArrowRight, ArrowLeft, Plus, Trash2, Camera } from "lucide-react";
+import dynamic from "next/dynamic";
+import { checkOnboardingStatus, saveOwnerName, saveGymName, saveGymLocation, savePlan } from "@/lib/actions/onboarding";
 
-const STEPS = ["Welcome", "Your Name", "Gym Name", "Membership Plan"];
+const LocationPicker = dynamic(() => import("@/components/LocationPicker"), { ssr: false });
+
+const STEPS = ["Welcome", "Your Name", "Gym Name", "Gym Location", "Profile Image", "Membership Plans"];
 
 type Plan = { name: string; price: string; months: string };
 
@@ -24,8 +27,14 @@ export default function OnboardingPage() {
 
   const [ownerName, setOwnerName] = useState("");
   const [gymName, setGymName] = useState("");
+  const [gymLat, setGymLat] = useState(0);
+  const [gymLng, setGymLng] = useState(0);
+  const [gymRadius, setGymRadius] = useState(100);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [profileFile, setProfileFile] = useState<File | null>(null);
   const [plans, setPlans] = useState<Plan[]>([{ name: "", price: "", months: "" }]);
   const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -38,26 +47,32 @@ export default function OnboardingPage() {
         router.replace("/member");
         return;
       }
-      if (!status.needsOwnerName && !status.needsGymName && !status.needsPlans) {
+      const allDone = !status.needsOwnerName && !status.needsGymName && !status.needsPlans && !status.needsLocation;
+      if (allDone) {
         router.replace("/dashboard");
         return;
       }
       if (!status.needsOwnerName) setStep(2);
       if (!status.needsOwnerName && !status.needsGymName) setStep(3);
+      if (!status.needsOwnerName && !status.needsGymName && !status.needsLocation) {
+        if (user?.hasImage) {
+          setStep(5);
+        } else {
+          setStep(4);
+        }
+      }
       setLoading(false);
     });
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, user?.hasImage]);
 
   async function handleFinish() {
     setSaving(true);
     setError("");
     try {
-      if (ownerName.trim()) {
-        await saveOwnerName(ownerName.trim());
-      }
-      if (gymName.trim()) {
-        await saveGymName(gymName.trim());
-      }
+      if (ownerName.trim()) await saveOwnerName(ownerName.trim());
+      if (gymName.trim()) await saveGymName(gymName.trim());
+      if (gymLat && gymLng && gymRadius) await saveGymLocation(gymLat, gymLng, gymRadius);
+      if (profileFile && user) await user.setProfileImage({ file: profileFile });
       const validPlans = plans.filter((p) => p.name.trim() && p.price && p.months);
       for (const p of validPlans) {
         await savePlan(p.name.trim(), Number(p.price), Number(p.months));
@@ -91,6 +106,10 @@ export default function OnboardingPage() {
       setError("Please enter a gym name");
       return;
     }
+    if (step === 3 && (!gymLat || !gymLng)) {
+      setError("Please set your gym location on the map");
+      return;
+    }
     setDirection(1);
     setStep((s) => s + 1);
   }
@@ -106,6 +125,15 @@ export default function OnboardingPage() {
     router.push("/sign-in");
   }
 
+  function handleProfileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProfileFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setProfilePreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
   if (!isLoaded || loading) {
     return (
       <div className="flex min-h-full items-center justify-center">
@@ -116,7 +144,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-8">
-      <div className="onboarding-card mx-auto w-full max-w-3xl p-6 md:p-8 flex flex-col min-h-[420px] max-h-[90vh]">
+      <div className="onboarding-card mx-auto w-full max-w-3xl p-4 sm:p-6 md:p-8 flex flex-col min-h-[420px] max-h-[90vh]">
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="flex size-10 items-center justify-center rounded-xl bg-primary-subtle">
             <Dumbbell size={22} className="text-primary" />
@@ -126,15 +154,15 @@ export default function OnboardingPage() {
           </span>
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-10">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6 sm:mb-10 scrollbar-hidden">
           {STEPS.map((label, i) => {
             const done = i < step;
             const current = i === step;
             return (
-              <div key={label} className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div key={label} className="flex items-center gap-1 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2">
                   <div
-                    className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 ${
+                    className={`flex size-6 sm:size-8 shrink-0 items-center justify-center rounded-full text-[10px] sm:text-xs font-bold transition-all duration-300 ${
                       done
                         ? "bg-primary text-white"
                         : current
@@ -142,7 +170,7 @@ export default function OnboardingPage() {
                           : "bg-white/[0.04] text-text-muted"
                     }`}
                   >
-                    {done ? <Check size={14} /> : i + 1}
+                    {done ? <Check size={12} /> : i + 1}
                   </div>
                   <span
                     className={`hidden sm:block text-sm font-medium transition-colors duration-300 whitespace-nowrap ${
@@ -154,7 +182,7 @@ export default function OnboardingPage() {
                 </div>
                 {i < STEPS.length - 1 && (
                   <div
-                    className={`h-px w-5 transition-colors duration-300 ${
+                    className={`hidden sm:block h-px w-3 sm:w-5 transition-colors duration-300 ${
                       done ? "bg-primary" : "bg-white/[0.08]"
                     }`}
                   />
@@ -165,7 +193,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hidden">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -178,7 +206,7 @@ export default function OnboardingPage() {
                 {step === 0 && (
                   <div className="space-y-6">
                     <div className="text-center">
-                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
                         Welcome!
                       </h1>
                       <p className="mt-2 text-sm text-text-secondary leading-relaxed">
@@ -195,7 +223,7 @@ export default function OnboardingPage() {
                 {step === 1 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
                         What&apos;s your name?
                       </h1>
                       <p className="mt-1.5 text-sm text-text-secondary">
@@ -218,7 +246,7 @@ export default function OnboardingPage() {
                 {step === 2 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
                         Name Your Gym
                       </h1>
                       <p className="mt-1.5 text-sm text-text-secondary">
@@ -241,7 +269,75 @@ export default function OnboardingPage() {
                 {step === 3 && (
                   <div className="space-y-6">
                     <div>
-                      <h1 className="text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        Set Gym Location
+                      </h1>
+                      <p className="mt-1.5 text-sm text-text-secondary">
+                        Pin your gym on the map so members can verify check-ins via location.
+                      </p>
+                    </div>
+                    <LocationPicker
+                      lat={gymLat}
+                      lng={gymLng}
+                      radius={gymRadius}
+                      onLocationChange={(lat, lng) => {
+                        setGymLat(lat);
+                        setGymLng(lng);
+                      }}
+                      onRadiusChange={setGymRadius}
+                    />
+                  </div>
+                )}
+
+                {step === 4 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+                        Profile Image
+                      </h1>
+                      <p className="mt-1.5 text-sm text-text-secondary">
+                        Upload a photo so your team can recognize you. You can skip this for now.
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center gap-4">
+                      <div
+                        onClick={() => fileRef.current?.click()}
+                        className="relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-white/[0.04] ring-2 ring-white/[0.08] hover:ring-primary/30 transition-all"
+                      >
+                        {profilePreview ? (
+                          <img
+                            src={profilePreview}
+                            alt="Profile preview"
+                            className="size-full object-cover"
+                          />
+                        ) : user?.imageUrl && user.hasImage ? (
+                          <img
+                            src={user.imageUrl}
+                            alt="Current profile"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Camera size={32} className="text-text-muted" />
+                        )}
+                      </div>
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleProfileSelect}
+                      />
+                      <p className="text-xs text-text-muted">
+                        Tap the circle to select a photo
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {step === 5 && (
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
                         Membership Plans
                       </h1>
                       <p className="mt-1.5 text-sm text-text-secondary">
@@ -351,15 +447,30 @@ export default function OnboardingPage() {
             </motion.button>
 
             {step < STEPS.length - 1 ? (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={goNext}
-                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white shadow-lg shadow-primary/20 min-h-[48px]"
-              >
-                Continue
-                <ArrowRight size={16} />
-              </motion.button>
+              <div className="flex gap-2">
+                {step === 4 && (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setDirection(1);
+                      setStep((s) => s + 1);
+                    }}
+                    className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-5 py-3 text-sm font-medium text-text-muted hover:text-text-primary min-h-[48px]"
+                  >
+                    Skip
+                  </motion.button>
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={goNext}
+                  className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-white shadow-lg shadow-primary/20 min-h-[48px]"
+                >
+                  Continue
+                  <ArrowRight size={16} />
+                </motion.button>
+              </div>
             ) : (
               <motion.button
                 whileHover={{ scale: 1.02 }}

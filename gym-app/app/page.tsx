@@ -1,40 +1,16 @@
-"use client";
-
-import { useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { checkOnboardingStatus } from "@/lib/actions/onboarding";
 
-export default function Home() {
-  const { isLoaded, userId } = useAuth();
-  const router = useRouter();
+export default async function Home() {
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
 
-  useEffect(() => {
-    if (!isLoaded) return;
+  const status = await checkOnboardingStatus();
 
-    if (!userId) {
-      router.replace("/sign-in");
-      return;
-    }
+  if (status.role === null) redirect("/onboarding");
+  if (status.role === "MEMBER") redirect("/member");
+  if (status.needsGymName || status.needsLocation || status.needsPlans) redirect("/onboarding");
 
-    checkOnboardingStatus()
-      .then((status) => {
-        if (status.role === null) {
-          router.replace("/onboarding");
-        } else if (status.role === "MEMBER") {
-          router.replace("/member");
-        } else if (status.needsGymName || status.needsPlans) {
-          router.replace("/onboarding");
-        } else {
-          router.replace("/dashboard");
-        }
-      })
-      .catch(() => router.replace("/onboarding"));
-  }, [isLoaded, userId, router]);
-
-  return (
-    <div className="flex min-h-full items-center justify-center">
-      <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-    </div>
-  );
+  redirect("/dashboard");
 }

@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_0czWWHCRti6m4Wsjx5wUV07uRQWz",
+      "name": "gym-management",
+      "directory": "gym-app",
+      "orgId": "team_Z7R7rigeX89VTDSP4JxNBk9m"
+    }
+  ]
+}

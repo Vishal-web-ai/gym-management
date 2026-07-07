@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   Receipt,
@@ -8,6 +8,10 @@ import {
   AlertCircle,
   IndianRupee,
   Pencil,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Select from "@/components/Select";
@@ -24,18 +28,19 @@ const categories = [
   "Other",
 ];
 
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
 const springBtn = { type: "spring" as const, stiffness: 300, damping: 20 };
 
 export default function ExpenseClient({
   initial,
-  csvData = "",
 }: {
   initial: any[];
-  csvData?: string;
 }) {
   const [expenses, setExpenses] = useState(initial);
   const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
   const [error, dispatch, isPending] = useActionState(
     async (_: string | null, formData: FormData) => {
@@ -57,6 +62,53 @@ export default function ExpenseClient({
 
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
+  const [monthOpen, setMonthOpen] = useState(false);
+  const monthRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (monthRef.current && !monthRef.current.contains(e.target as Node)) {
+        setMonthOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const goToMonth = useCallback((m: number, y: number) => {
+    setMonth(m);
+    setYear(y);
+  }, []);
+
+  const prevMonth = useCallback(() => {
+    if (month === 0) {
+      goToMonth(11, year - 1);
+    } else {
+      goToMonth(month - 1, year);
+    }
+  }, [month, year, goToMonth]);
+
+  const nextMonth = useCallback(() => {
+    if (month === 11) {
+      goToMonth(0, year + 1);
+    } else {
+      goToMonth(month + 1, year);
+    }
+  }, [month, year, goToMonth]);
+
+  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
+  const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth());
+
+  const filteredExpenses = useMemo(() => expenses.filter((e: any) => {
+    const d = new Date(e.date);
+    const matchesMonth = d.getMonth() === month && d.getFullYear() === year;
+    const matchesSearch = !search || e.title.toLowerCase().includes(search.toLowerCase());
+    return matchesMonth && matchesSearch;
+  }), [expenses, month, year, search]);
 
   async function handleDelete(id: string) {
     setDeleteError(null);
@@ -86,7 +138,7 @@ export default function ExpenseClient({
     }
   }
 
-  const total = expenses.reduce((s: number, e: any) => s + e.amount, 0);
+  const total = filteredExpenses.reduce((s: number, e: any) => s + e.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -103,15 +155,25 @@ export default function ExpenseClient({
           </p>
         </div>
         <div className="flex gap-2">
-          {csvData && (
-            <a
-              href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvData)}`}
-              download="expenses.csv"
-              className="rounded-xl bg-primary/15 px-3 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/20 hover:bg-primary/25 transition-all duration-200 min-h-[44px] flex items-center gap-1"
-            >
-              Export CSV
-            </a>
-          )}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={async () => {
+              const { exportExpensesCSV } = await import("@/lib/actions/members");
+              const csv = await exportExpensesCSV();
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "expenses.csv";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }}
+            className="rounded-xl bg-primary/15 px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/25 transition-all duration-200 min-h-[44px] flex items-center gap-1"
+          >
+            Export CSV
+          </motion.button>
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
@@ -122,6 +184,98 @@ export default function ExpenseClient({
             Add
           </motion.button>
         </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.15 }}
+        className="glass-card flex items-center gap-2 rounded-xl px-3 py-2"
+      >
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={prevMonth}
+          className="rounded-lg p-2 bg-primary/15 text-primary hover:bg-primary/25 transition-all duration-200"
+        >
+          <ChevronLeft size={18} />
+        </motion.button>
+        <div className="flex-1 relative" ref={monthRef}>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setMonthOpen(!monthOpen)}
+            className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 transition-all duration-200"
+          >
+            {monthNames[month]} {year}
+            <motion.div
+              animate={{ rotate: monthOpen ? 180 : 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            >
+              <ChevronDown size={14} />
+            </motion.div>
+          </motion.button>
+          <AnimatePresence>
+            {monthOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl"
+              >
+                <div className="grid grid-cols-3 gap-px p-2">
+                  {monthNames.map((name, i) => {
+                    const disabled = year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth());
+                    return (
+                      <motion.button
+                        key={i}
+                        disabled={disabled}
+                        whileHover={!disabled ? { scale: 1.05 } : undefined}
+                        whileTap={!disabled ? { scale: 0.95 } : undefined}
+                        onClick={() => {
+                          goToMonth(i, year);
+                          setMonthOpen(false);
+                        }}
+                        className={`rounded-lg px-2 py-1.5 text-xs transition-all ${
+                          month === i
+                            ? "bg-primary/20 text-primary font-medium"
+                            : disabled
+                              ? "text-text-muted/30 cursor-not-allowed"
+                              : "text-text-muted hover:bg-white/[0.06] hover:text-text-primary"
+                        }`}
+                      >
+                        {name}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={nextMonth}
+          disabled={isCurrentMonth || isFutureMonth}
+          className="rounded-lg p-2 bg-primary/15 text-primary hover:bg-primary/25 transition-all duration-200 disabled:opacity-30"
+        >
+          <ChevronRight size={18} />
+        </motion.button>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.2 }}
+        className="relative"
+      >
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+        <input
+          type="search"
+          placeholder="Search by title..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full rounded-xl bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
+        />
       </motion.div>
 
       <AnimatePresence>
@@ -188,7 +342,7 @@ export default function ExpenseClient({
         )}
       </AnimatePresence>
 
-      {expenses.length === 0 && !showForm && (
+      {filteredExpenses.length === 0 && !showForm && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -204,7 +358,7 @@ export default function ExpenseClient({
 
       <div className="space-y-2">
         <AnimatePresence mode="popLayout">
-          {expenses.map((expense: any, i: number) =>
+          {filteredExpenses.map((expense: any, i: number) =>
             editId === expense.id ? (
               <motion.div
                 key={expense.id}
@@ -286,7 +440,7 @@ export default function ExpenseClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ ...springGentle, delay: 0.15 + i * 0.03 }}
-                className="glass-card flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]"
+                className="glass-card flex items-center gap-3 sm:gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
                   <Receipt size={18} />
@@ -295,11 +449,11 @@ export default function ExpenseClient({
                   <p className="truncate font-medium text-text-primary">
                     {expense.title}
                   </p>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-text-muted">
-                    <span className="rounded-md bg-white/[0.04] px-2 py-0.5">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-muted">
+                    <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5">
                       {expense.category}
                     </span>
-                    <span>
+                    <span className="shrink-0">
                       {new Date(expense.date).toLocaleDateString("en-IN", {
                         day: "numeric",
                         month: "short",
@@ -308,8 +462,8 @@ export default function ExpenseClient({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-text-primary">
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+                  <p className="text-sm font-semibold text-text-primary text-nowrap">
                     <IndianRupee size={12} className="inline" />
                     {expense.amount.toLocaleString("en-IN")}
                   </p>

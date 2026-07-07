@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 
 export async function checkOnboardingStatus() {
   const user = await getCurrentUser();
-  if (!user) return { needsOwnerName: true, needsGymName: true, needsPlans: true, role: null };
+  if (!user) return { needsOwnerName: true, needsGymName: true, needsLocation: true, needsPlans: true, role: null };
 
   try {
     const [config, plans] = await prisma.$transaction([
@@ -18,11 +18,12 @@ export async function checkOnboardingStatus() {
     return {
       needsOwnerName: !config?.ownerName,
       needsGymName: !config?.gymName,
+      needsLocation: !config?.gymLat || !config?.gymLng || !config?.gymRadius,
       needsPlans: plans.length === 0,
       role: user.role,
     };
   } catch {
-    return { needsOwnerName: true, needsGymName: true, needsPlans: true, role: null };
+    return { needsOwnerName: true, needsGymName: true, needsLocation: true, needsPlans: true, role: null };
   }
 }
 
@@ -53,6 +54,19 @@ export async function saveGymName(gymName: string) {
     where: { userId },
     update: { gymName },
     create: { userId, gymName },
+  });
+
+  revalidatePath("/onboarding");
+}
+
+export async function saveGymLocation(lat: number, lng: number, radius: number) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Not authenticated");
+
+  await prisma.gymConfig.upsert({
+    where: { userId },
+    update: { gymLat: lat, gymLng: lng, gymRadius: radius },
+    create: { userId, gymLat: lat, gymLng: lng, gymRadius: radius },
   });
 
   revalidatePath("/onboarding");

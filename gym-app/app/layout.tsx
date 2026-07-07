@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
-import BottomNav from "@/components/BottomNav";
-import SidebarNav from "@/components/SidebarNav";
+import dynamic from "next/dynamic";
 import AnimLayout from "@/components/AnimLayout";
+
+const BottomNav = dynamic(() => import("@/components/BottomNav"));
+const SidebarNav = dynamic(() => import("@/components/SidebarNav"));
 import { QueryProvider } from "@/lib/providers/query-provider";
 
 const plusJakarta = Plus_Jakarta_Sans({

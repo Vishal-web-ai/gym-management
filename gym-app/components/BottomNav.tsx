@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, UserCheck, Receipt, Settings, DollarSign } from "lucide-react";
+import { LayoutDashboard, Users, UserCheck, Receipt, DollarSign } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
 import { usePrefetch } from "@/lib/hooks/usePrefetch";
@@ -13,7 +13,6 @@ const navItems = [
   { href: "/payments", label: "Payments", icon: DollarSign },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/attendance", label: "Attendance", icon: UserCheck },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const spring = { type: "spring" as const, stiffness: 500, damping: 35, mass: 0.8 };

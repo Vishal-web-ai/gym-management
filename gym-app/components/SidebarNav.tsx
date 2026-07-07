@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { LayoutDashboard, Users, UserCheck, Dumbbell, Receipt, Settings, DollarSign } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
@@ -30,6 +31,12 @@ export default function SidebarNav() {
     pathname === "/member" || pathname.startsWith("/member/") ||
     pathname.startsWith("/check-in") ||
     pathname.startsWith("/access-denied");
+
+  useEffect(() => {
+    if (isSignedIn && !isAuthPage) {
+      navItems.forEach(({ href }) => prefetch(href));
+    }
+  }, [isSignedIn, isAuthPage, prefetch]);
 
   if (!isSignedIn || isAuthPage) return null;
 
@@ -61,7 +68,6 @@ export default function SidebarNav() {
               <Link
                 href={href}
                 prefetch={true}
-                onPointerEnter={() => prefetch(href)}
                 className={`relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium min-h-[44px] ${
                   isActive
                     ? "glass-card-active text-primary"

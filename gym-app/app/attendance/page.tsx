@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle, Clock, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -14,13 +14,10 @@ type CheckInRecord = {
   member: { firstName: string } | null;
 };
 
-const today = () => {
+const todayStr = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
-
-const fmt = (d: Date) =>
-  d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
 const shift = (d: string, n: number) => {
   const dt = new Date(d);
@@ -28,17 +25,75 @@ const shift = (d: string, n: number) => {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
 };
 
+const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const dayHeaders = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
 const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
 
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function getFirstDayOfMonth(year: number, month: number) {
+  return new Date(year, month, 1).getDay();
+}
+
+function toDateStr(year: number, month: number, day: number) {
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export default function AttendancePage() {
-  const [selectedDate, setSelectedDate] = useState(today());
-  const isToday = selectedDate >= today();
+  const [selectedDate, setSelectedDate] = useState(todayStr());
+  const isToday = selectedDate >= todayStr();
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const calRef = useRef<HTMLDivElement>(null);
+
+  const sel = new Date(selectedDate);
+  const [calYear, setCalYear] = useState(sel.getFullYear());
+  const [calMonth, setCalMonth] = useState(sel.getMonth());
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (calRef.current && !calRef.current.contains(e.target as Node)) {
+        setCalendarOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const openCalendar = useCallback(() => {
+    const d = new Date(selectedDate);
+    setCalYear(d.getFullYear());
+    setCalMonth(d.getMonth());
+    setCalendarOpen(true);
+  }, [selectedDate]);
+
+  const selectDate = useCallback((day: number) => {
+    setSelectedDate(toDateStr(calYear, calMonth, day));
+    setCalendarOpen(false);
+  }, [calYear, calMonth]);
+
+  const displayDate = (() => {
+    const d = new Date(selectedDate);
+    return `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+  })();
 
   const { data: checkins = [], isLoading } = useQuery({
     queryKey: ["checkins", selectedDate],
     queryFn: () => getCheckInsByDate(selectedDate),
+    staleTime: isToday ? 1000 : 30_000,
     refetchInterval: isToday ? 5000 : false,
   });
+
+  const daysInMonth = getDaysInMonth(calYear, calMonth);
+  const firstDay = getFirstDayOfMonth(calYear, calMonth);
+  const calendarDays: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) calendarDays.push(null);
+  for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
   return (
     <div className="space-y-4 p-4">
@@ -65,13 +120,89 @@ export default function AttendancePage() {
         >
           <ChevronLeft size={18} />
         </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => setSelectedDate(today())}
-          className="flex-1 text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 shadow-sm shadow-primary/20 transition-all duration-200"
-        >
-          {fmt(new Date(selectedDate))}
-        </motion.button>
+        <div className="flex-1 relative" ref={calRef}>
+          <div
+            onClick={openCalendar}
+            className="w-full cursor-pointer text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 transition-all duration-200 hover:bg-primary/25"
+          >
+            {displayDate}
+          </div>
+          <AnimatePresence>
+            {calendarOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-xl border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl sm:left-1/2 sm:-translate-x-1/2 sm:w-80"
+              >
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
+                        else { setCalMonth(calMonth - 1); }
+                      }}
+                      className="rounded-lg p-1.5 text-text-muted hover:bg-white/[0.06] hover:text-text-primary transition-all"
+                    >
+                      <ChevronLeft size={16} />
+                    </motion.button>
+                    <span className="text-sm font-semibold text-text-primary">
+                      {monthNames[calMonth]} {calYear}
+                    </span>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => {
+                        if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
+                        else { setCalMonth(calMonth + 1); }
+                      }}
+                      className="rounded-lg p-1.5 text-text-muted hover:bg-white/[0.06] hover:text-text-primary transition-all"
+                    >
+                      <ChevronRight size={16} />
+                    </motion.button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-0.5 mb-1">
+                    {dayHeaders.map((h) => (
+                      <div key={h} className="text-center text-xs font-medium text-text-muted py-1">
+                        {h}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-0.5">
+                    {calendarDays.map((day, i) => {
+                      if (day === null) return <div key={`e-${i}`} />;
+                      const dateStr = toDateStr(calYear, calMonth, day);
+                      const d = new Date(calYear, calMonth, day);
+                      const isSelected = dateStr === selectedDate;
+                      const isCurrent = d.getTime() === today.getTime();
+                      const isFuture = d > today;
+                      return (
+                        <motion.button
+                          key={i}
+                          whileTap={{ scale: 0.9 }}
+                          disabled={isFuture}
+                          onClick={() => selectDate(day)}
+                          className={`rounded-lg py-1.5 text-sm transition-all ${
+                            isSelected
+                              ? "bg-primary text-white font-semibold"
+                              : isCurrent
+                                ? "bg-primary/20 text-primary font-medium"
+                                : isFuture
+                                  ? "text-text-muted/30 cursor-not-allowed"
+                                  : "text-text-muted hover:bg-white/[0.06] hover:text-text-primary"
+                          }`}
+                        >
+                          {day}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setSelectedDate(shift(selectedDate, 1))}

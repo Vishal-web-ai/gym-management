@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getMembersPaginated } from "@/lib/actions/members";
 import { getAllPayments } from "@/lib/actions/payments";
 import { getCheckInsByDate } from "@/lib/actions/attendance";
+import { getDashboardStats, getMonthlyTrend } from "@/lib/actions/dashboard";
+import { getExpenses } from "@/lib/actions/expenses";
 import { useCallback } from "react";
 
 export function usePrefetch() {
@@ -12,10 +14,24 @@ export function usePrefetch() {
   return useCallback((href: string) => {
     const now = new Date();
     switch (href) {
-      case "/members":
+      case "/dashboard":
         queryClient.prefetchQuery({
-          queryKey: ["members"],
-          queryFn: () => getMembersPaginated(0, 20),
+          queryKey: ["dashboard"],
+          queryFn: async () => {
+            const [stats, monthlyTrend] = await Promise.all([
+              getDashboardStats(),
+              getMonthlyTrend(),
+            ]);
+            return { stats, monthlyTrend };
+          },
+          staleTime: 30 * 1000,
+        });
+        break;
+      case "/members":
+        queryClient.prefetchInfiniteQuery({
+          queryKey: ["members", "infinite"],
+          queryFn: ({ pageParam = 0 }) => getMembersPaginated(pageParam, 20),
+          initialPageParam: 0,
           staleTime: 5 * 60 * 1000,
         });
         break;
@@ -37,6 +53,13 @@ export function usePrefetch() {
         });
         break;
       }
+      case "/expenses":
+        queryClient.prefetchQuery({
+          queryKey: ["expenses"],
+          queryFn: getExpenses,
+          staleTime: 30 * 1000,
+        });
+        break;
     }
   }, [queryClient]);
 }

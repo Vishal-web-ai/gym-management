@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Search, Phone, ChevronRight, Loader2, Download, Upload, Smartphone, CheckCircle, X } from "lucide-react";
@@ -39,7 +39,7 @@ export default function MembersList({
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["members"],
+    queryKey: ["members", "infinite"],
     queryFn: ({ pageParam = 0 }) => getMembersPaginated(pageParam, 20),
     staleTime: 5 * 60 * 1000,
     initialPageParam: 0,
@@ -54,14 +54,14 @@ export default function MembersList({
 
   const members = data?.pages.flatMap((p) => p.members) ?? [];
 
-  const filtered = members.filter((m: Member) => {
+  const filtered = useMemo(() => members.filter((m: Member) => {
     const name = m.firstName.toLowerCase();
     const q = search.toLowerCase();
     return (
       (name.includes(q) || m.phone.includes(q)) &&
       (filter === "All" || m.status === filter)
     );
-  });
+  }), [members, search, filter]);
 
   const [exporting, setExporting] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
@@ -278,7 +278,7 @@ export default function MembersList({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springGentle, delay: 0.2 }}
-        className="flex gap-2 overflow-x-auto pb-1"
+        className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden"
       >
         {["All", "Active", "Overdue", "Frozen", "Expired"].map((f) => (
           <motion.button

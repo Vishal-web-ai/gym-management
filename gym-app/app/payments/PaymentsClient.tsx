@@ -6,7 +6,6 @@ import { DollarSign, ChevronLeft, ChevronRight, Loader2, Search, Banknote, Smart
 import { motion, AnimatePresence } from "motion/react";
 import { getAllPayments } from "@/lib/actions/payments";
 import { exportPaymentsCSV } from "@/lib/actions/members";
-import { downloadReceiptPdf } from "@/lib/pdf";
 import Link from "next/link";
 
 const modeIcons: Record<string, React.ReactNode> = {
@@ -149,7 +148,7 @@ export default function PaymentsClient({
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="rounded-xl bg-primary/15 px-3 py-2.5 text-sm font-medium text-primary shadow-sm shadow-primary/20 min-h-[44px] flex items-center gap-1"
+            className="rounded-xl bg-primary/15 px-3 py-2.5 text-sm font-medium text-primary min-h-[44px] flex items-center gap-1"
           >
             <FileDown size={16} />
             Export CSV
@@ -174,7 +173,7 @@ export default function PaymentsClient({
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => setMonthOpen(!monthOpen)}
-            className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 shadow-sm shadow-primary/20 transition-all duration-200"
+            className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 transition-all duration-200"
           >
             {monthNames[month]} {year}
             <motion.div
@@ -306,11 +305,12 @@ export default function PaymentsClient({
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.9 }}
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
+                      const { downloadReceiptPdf: dl } = await import("@/lib/pdf");
                       const name = p.member?.firstName || "";
-                      downloadReceiptPdf(name, p.amount, p.mode, p.createdAt, gymName);
+                      dl(name, p.amount, p.mode, p.createdAt, gymName);
                     }}
                     className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-all"
                   >
