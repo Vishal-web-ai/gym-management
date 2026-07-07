@@ -25,6 +25,7 @@ export default function Select({
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(value ?? "");
+  const [upward, setUpward] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,6 +38,16 @@ export default function Select({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  function toggle() {
+    if (!open && ref.current) {
+      const rect = ref.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const estimatedHeight = options.length * 40 + 20;
+      setUpward(spaceBelow < estimatedHeight);
+    }
+    setOpen(!open);
+  }
+
   const displayLabel = selected
     ? options.find((o) => o.value === selected)?.label ?? selected
     : placeholder ?? "Select...";
@@ -46,7 +57,7 @@ export default function Select({
       <input type="hidden" name={name} value={selected} />
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         className={`flex w-full items-center justify-between rounded-xl bg-white/[0.04] px-4 py-3.5 text-sm outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06] min-h-[48px] ${
           selected ? "text-text-primary" : "text-text-muted"
         } ${className}`}
@@ -62,11 +73,13 @@ export default function Select({
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            initial={{ opacity: 0, scale: 0.95, y: upward ? 4 : -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            exit={{ opacity: 0, scale: 0.95, y: upward ? 4 : -4 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-bg-base py-1 shadow-xl shadow-black/40"
+            className={`absolute z-50 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-bg-base py-1 shadow-xl shadow-black/40 ${
+              upward ? "bottom-full mb-1" : "mt-1"
+            }`}
           >
             {options.map((opt) => (
               <motion.button
