@@ -65,7 +65,7 @@ export default function RootLayout({
         <body className="h-full font-sans text-text-primary">
           <QueryProvider>
             <SidebarNav />
-            <div className="mx-auto flex min-h-full w-full flex-col md:ml-64 md:max-w-(--breakpoint-lg) md:px-8 lg:max-w-(--breakpoint-xl) xl:max-w-(--breakpoint-2xl)">
+            <div className="mx-auto flex min-h-full w-full max-w-lg flex-col px-4 md:ml-64 md:max-w-none md:px-8 lg:max-w-3xl xl:max-w-4xl">
               <AnimLayout>{children}</AnimLayout>
             </div>
             <BottomNav />

@@ -103,7 +103,7 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-bold tracking-tight text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
             Dashboard
           </h1>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Link
               href="/settings"
               className="flex size-10 items-center justify-center rounded-xl text-text-muted transition-all duration-200 hover:bg-white/[0.06] hover:text-text-primary"
@@ -111,10 +111,12 @@ export default async function DashboardPage() {
             >
               <Settings size={20} />
             </Link>
-            <UserButton
-              appearance={clerkAppearance}
-              userProfileProps={{ appearance: userProfileAppearance }}
-            />
+            <div className="flex size-10 items-center justify-center">
+              <UserButton
+                appearance={clerkAppearance}
+                userProfileProps={{ appearance: userProfileAppearance }}
+              />
+            </div>
           </div>
         </div>
         <DateDisplay />
