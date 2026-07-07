@@ -90,9 +90,16 @@ export async function getAttendanceCalendar(memberId: string, gymUserId: string,
   }));
 }
 
-export async function getWeeklyStreak(memberId: string, gymUserId: string) {
+export async function getWeeklyStreak(memberId: string, gymUserId: string, year?: number, month?: number) {
+  const where: any = { memberId, userId: gymUserId };
+  if (year !== undefined && month !== undefined) {
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 0, 23, 59, 59, 999);
+    where.checkInTime = { gte: start, lte: end };
+  }
+
   const attendances = await prisma.attendance.findMany({
-    where: { memberId, userId: gymUserId },
+    where,
     select: { checkInTime: true },
     orderBy: { checkInTime: "desc" },
   });
@@ -112,24 +119,10 @@ export async function getWeeklyStreak(memberId: string, gymUserId: string) {
     })
     .sort((a, b) => b.getTime() - a.getTime());
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // current = total unique days in the period
+  const currentStreak = sortedDays.length;
 
-  // current streak: consecutive days ending at the most recent check-in
-  let currentStreak = 0;
-  if (sortedDays.length > 0) {
-    const diffFromToday = Math.round((today.getTime() - sortedDays[0].getTime()) / 86400000);
-    if (diffFromToday <= 1) {
-      for (let i = 0; i < sortedDays.length; i++) {
-        const expected = new Date(sortedDays[0].getTime() - currentStreak * 86400000);
-        expected.setHours(0, 0, 0, 0);
-        if (sortedDays[i].getTime() === expected.getTime()) {
-          currentStreak++;
-        } else break;
-      }
-    }
-  }
-
+  // best = longest consecutive streak
   let bestStreak = 0;
   let tempStreak = 1;
   for (let i = 1; i < sortedDays.length; i++) {

@@ -218,7 +218,8 @@ function MemberContent() {
       setAlreadyCheckedIn(true);
       setCheckInVersion((v) => v + 1);
 
-      const streak = await getWeeklyStreak(identified.id, gymUserId!);
+      const now = new Date();
+      const streak = await getWeeklyStreak(identified.id, gymUserId!, now.getFullYear(), now.getMonth() + 1);
       setCelebrationStreak(streak?.current || 0);
       setShowCelebration(true);
 
@@ -591,7 +592,7 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
   useEffect(() => {
     Promise.all([
       getMemberDashboard(memberId, gymUserId),
-      getWeeklyStreak(memberId, gymUserId),
+      getWeeklyStreak(memberId, gymUserId, calYear, calMonth),
       getAttendanceCalendar(memberId, gymUserId, calYear, calMonth),
     ]).then(([d, s, c]) => {
       setData(d);
