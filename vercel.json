@@ -1,0 +1,6 @@
+{
+  "rootDirectory": "gym-app",
+  "buildCommand": "npx prisma generate --schema=prisma/schema.prisma && npx next build",
+  "framework": "nextjs",
+  "installCommand": "npm install"
+}
