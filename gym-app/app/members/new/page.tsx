@@ -2,6 +2,7 @@
 
 import { useState, useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { createMemberWithPayment } from "@/lib/actions/members";
 import { getPlans } from "@/lib/actions/plans";
 import { getGymConfig } from "@/lib/actions/settings";
@@ -20,6 +21,7 @@ export default function NewMemberPage() {
     getGymConfig().then((c) => c?.gymName && setGymName(c.gymName)).catch(() => {});
   }, []);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [doneData, setDoneData] = useState<{ phone: string; name: string; amount: number; mode: string; memberId: string; gymUserId: string } | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -42,6 +44,11 @@ export default function NewMemberPage() {
     setShowConfirm(true);
   }
 
+  function goToMembers() {
+    queryClient.invalidateQueries({ queryKey: ["members"] });
+    router.push("/members");
+  }
+
   function handleSend() {
     if (!doneData) return;
     const { phone, name, amount, mode, memberId, gymUserId } = doneData;
@@ -50,13 +57,13 @@ export default function NewMemberPage() {
     openWhatsApp(phone, receiptMessage(name, amount, mode, new Date().toISOString(), gymName, link));
     setDoneData(null);
     setShowConfirm(false);
-    router.push("/members");
+    goToMembers();
   }
 
   function handleCancel() {
     setDoneData(null);
     setShowConfirm(false);
-    router.push("/members");
+    goToMembers();
   }
 
   return (
