@@ -37,6 +37,7 @@ export default function SettingsClient({
   const [restoring, setRestoring] = useState(false);
   const [restoreResult, setRestoreResult] = useState<string | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "saving" | "saved">("idle");
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleSave() {
@@ -393,16 +394,39 @@ export default function SettingsClient({
         </div>
         <motion.button
           whileTap={{ scale: 0.97 }}
+          disabled={locationStatus !== "idle"}
           onClick={async () => {
             const lat = parseFloat((document.getElementById("gym-lat") as HTMLInputElement).value);
             const lng = parseFloat((document.getElementById("gym-lng") as HTMLInputElement).value);
             const radius = parseFloat((document.getElementById("gym-radius") as HTMLInputElement).value);
             if (isNaN(lat) || isNaN(lng) || isNaN(radius)) return;
-            await updateGymLocation(lat, lng, radius);
+            setLocationStatus("saving");
+            try {
+              await updateGymLocation(lat, lng, radius);
+              setLocationStatus("saved");
+              setTimeout(() => setLocationStatus("idle"), 2000);
+            } catch {
+              setLocationStatus("idle");
+            }
           }}
-          className="rounded-xl bg-primary/10 px-4 py-2.5 text-xs font-medium text-primary hover:bg-primary/20 transition-all"
+          className={`rounded-xl px-4 py-2.5 text-xs font-medium transition-all ${
+            locationStatus === "saved"
+              ? "bg-emerald-500/20 text-emerald-400"
+              : "bg-primary/10 text-primary hover:bg-primary/20"
+          } disabled:opacity-60`}
         >
-          Save Location
+          <motion.span
+            key={locationStatus}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-1.5"
+          >
+            {locationStatus === "saving" && (
+              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            )}
+            {locationStatus === "saved" && <Check size={14} />}
+            {locationStatus === "saving" ? "Saving..." : locationStatus === "saved" ? "Saved" : "Save Location"}
+          </motion.span>
         </motion.button>
       </motion.div>
 
