@@ -695,6 +695,9 @@ function DashboardTab({ memberId, gymUserId, checkInVersion }: { memberId: strin
               <Clock size={14} />
               Attendance Calendar
             </h2>
+            <span className="text-sm font-medium text-text-primary">
+              {new Date(calYear, calMonth - 1).toLocaleString("default", { month: "long", year: "numeric" })}
+            </span>
             <div className="flex gap-1">
               <motion.button
                 whileTap={{ scale: 0.9 }}
