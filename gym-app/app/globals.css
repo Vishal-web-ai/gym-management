@@ -2,8 +2,8 @@
 
 @theme inline {
   --color-bg-base: #0C0C0C;
-  --color-bg-surface: rgba(28, 25, 23, 0.6);
-  --color-bg-surface-hover: rgba(41, 37, 36, 0.6);
+  --color-bg-surface: rgb(22, 20, 19);
+  --color-bg-surface-hover: rgb(29, 27, 26);
   --color-primary: #D97706;
   --color-primary-glow: rgba(217, 119, 6, 0.25);
   --color-primary-subtle: rgba(217, 119, 6, 0.1);
@@ -48,8 +48,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-card {
   background: var(--color-bg-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--color-border);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -61,8 +59,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .glass-card-active {
   background: rgba(217, 119, 6, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(217, 119, 6, 0.2);
 }
 
@@ -135,9 +131,7 @@ input[type="number"] {
 .onboarding-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(160deg, rgba(28, 25, 23, 0.8), rgba(18, 16, 15, 0.95));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: linear-gradient(160deg, rgb(28, 25, 23), rgb(18, 16, 15));
   border: 1px solid rgba(217, 119, 6, 0.18);
   border-radius: 1.25rem;
 
