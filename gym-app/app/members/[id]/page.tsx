@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Tags } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth";
+import { getNow } from "@/lib/now";
 import {
   getMemberById,
   getPaymentsByMemberId,
@@ -52,6 +53,7 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const user = await requireAdminPage();
+  const now = await getNow();
   const { id } = await params;
   const userId = user.gymOwnerId;
   let member: MemberDetail | null = null;
@@ -138,7 +140,7 @@ export default async function MemberDetailPage({
           {member.endDate && (
             <div className="flex items-center gap-3 text-sm">
               <span className={`flex size-8 items-center justify-center rounded-lg ${
-                new Date(member.endDate) < new Date()
+                new Date(member.endDate) < now
                   ? "bg-red-500/10 text-red-400"
                   : "bg-amber-500/10 text-amber-400"
               }`}>
@@ -147,7 +149,6 @@ export default async function MemberDetailPage({
               <span>
                 {(() => {
                   const end = new Date(member.endDate);
-                  const now = new Date();
                   const days = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                   return end < now
                     ? `Expired ${Math.abs(days)} days ago`

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getDistance } from "@/lib/geo";
+import { getNow, getNowMs } from "@/lib/now";
 
 export async function findMemberByPhone(phone: string, gymUserId: string) {
   return prisma.member.findFirst({
@@ -28,10 +29,10 @@ export async function getMemberDashboard(memberId: string, gymUserId: string) {
   if (member.status === "Expired") return null;
   if (member.status === "Overdue" && member.endDate) {
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
-    if (new Date() > graceEnd) return null;
+    if ((await getNow()) > graceEnd) return null;
   }
 
-  const now = new Date();
+  const now = await getNow();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const [totalAttendance, todayCheckedIn, allAttendances, personalRecords] = await Promise.all([
@@ -184,7 +185,7 @@ export async function getPRs(memberId: string, gymUserId: string) {
 }
 
 export async function checkInMember(memberId: string, gymUserId: string) {
-  const now = new Date();
+  const now = await getNow();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const [member, existing] = await Promise.all([
@@ -199,7 +200,7 @@ export async function checkInMember(memberId: string, gymUserId: string) {
   if (member.status === "Expired") throw new Error("Membership has expired");
   if (member.status === "Overdue" && member.endDate) {
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
-    if (new Date() > graceEnd) throw new Error("Membership has expired");
+    if ((await getNow()) > graceEnd) throw new Error("Membership has expired");
   }
 
   const record = await prisma.attendance.create({
@@ -211,7 +212,7 @@ export async function checkInMember(memberId: string, gymUserId: string) {
 }
 
 export async function hasCheckedInToday(memberId: string, gymUserId: string) {
-  const now = new Date();
+  const now = await getNow();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const existing = await prisma.attendance.findFirst({
@@ -250,10 +251,10 @@ export async function checkInMemberWithGPS(
   if (member.status === "Expired") throw new Error("Membership has expired");
   if (member.status === "Overdue" && member.endDate) {
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
-    if (new Date() > graceEnd) throw new Error("Membership has expired");
+    if ((await getNow()) > graceEnd) throw new Error("Membership has expired");
   }
 
-  const now = new Date();
+  const now = await getNow();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const [config, existing] = await Promise.all([

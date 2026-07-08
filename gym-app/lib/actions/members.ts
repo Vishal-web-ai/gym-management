@@ -10,6 +10,7 @@ import {
   freezeMemberSchema,
 } from "@/lib/validations";
 import { requireAdmin } from "@/lib/auth";
+import { getNow, getNowMs } from "@/lib/now";
 import { logActivity } from "@/lib/actions/activity";
 import { formatError } from "@/lib/actions/helpers";
 
@@ -201,7 +202,7 @@ export async function logPayment(formData: FormData) {
     endDate: formData.get("endDate") || undefined,
   });
 
-  const now = new Date();
+  const now = await getNow();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const existing = await prisma.payment.findFirst({
     where: {
@@ -253,7 +254,7 @@ export async function freezeMember(formData: FormData) {
 
   await prisma.member.update({
     where: { id: parsed.memberId, userId: ownerId },
-    data: { status: "Frozen", frozenAt: new Date() },
+    data: { status: "Frozen", frozenAt: await getNow() },
   });
 
   logActivity("member.frozen", JSON.stringify({ memberId: parsed.memberId }));
@@ -380,7 +381,7 @@ export async function unfreezeMember(formData: FormData) {
 
   if (member?.frozenAt && member?.endDate) {
     const frozenDays = Math.ceil(
-      (Date.now() - new Date(member.frozenAt).getTime()) / (1000 * 60 * 60 * 24),
+      ((await getNowMs()) - new Date(member.frozenAt).getTime()) / (1000 * 60 * 60 * 24),
     );
     updateData.endDate = new Date(
       new Date(member.endDate).getTime() + frozenDays * 24 * 60 * 60 * 1000,
@@ -454,7 +455,7 @@ export async function updateMemberStatuses() {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
 
-  const now = new Date();
+  const now = await getNow();
   const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
 
   const config = await prisma.gymConfig.findUnique({

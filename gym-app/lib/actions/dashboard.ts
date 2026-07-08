@@ -2,12 +2,14 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { getNow } from "@/lib/now";
 
 export async function getMonthlyTrend() {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
-  const year = new Date().getFullYear();
-  const currentMonth = new Date().getMonth();
+  const now = await getNow();
+  const year = now.getFullYear();
+  const currentMonth = now.getMonth();
 
   const startOfYear = new Date(year, 0, 1);
   const startOfNextYear = new Date(year + 1, 0, 1);
@@ -44,7 +46,7 @@ export async function getMonthlyTrend() {
 export async function getDashboardStats() {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
-  const now = new Date();
+  const now = await getNow();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [revenue, activeCount, overdueCount, expensesSum, recentPayments] =

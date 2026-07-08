@@ -10,7 +10,7 @@ export default function SettingsShell() {
     queryKey: ["settings"],
     queryFn: async () => {
       const [config, plans] = await Promise.all([
-        getGymConfig().then((c: any) => c ?? { gymName: "Iron Forge Gym", ownerName: "", gymLat: null, gymLng: null, gymRadius: null }),
+        getGymConfig().then((c: any) => c ?? { gymName: "Iron Forge Gym", ownerName: "", gymLat: null, gymLng: null, gymRadius: null, testTimeOffset: null }),
         getPlans(),
       ]);
       return { config, plans };
@@ -20,5 +20,5 @@ export default function SettingsShell() {
 
   if (isLoading) return null; // parent Suspense handles skeleton
 
-  return <SettingsClient config={data!.config} plans={data!.plans} />;
+  return <SettingsClient config={data!.config} plans={data!.plans} testTimeOffset={Number(data!.config.testTimeOffset ?? 0)} />;
 }

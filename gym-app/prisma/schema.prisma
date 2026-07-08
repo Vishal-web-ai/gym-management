@@ -102,6 +102,7 @@ model GymConfig {
   gymLng            Float?
   gymRadius         Float?
   lastStatusCheckAt DateTime?
+  testTimeOffset    BigInt?
 }
 
 model ActivityLog {

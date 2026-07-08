@@ -47,3 +47,26 @@ export async function updateGymLocation(lat: number, lng: number, radius: number
   logActivity("settings.gym_location.updated", JSON.stringify({ lat, lng, radius }));
   revalidatePath("/settings");
 }
+
+export async function setTestTimeOffset(offsetMs: number) {
+  const user = await requireAdmin();
+  if (process.env.NODE_ENV !== "development") throw new Error("Only available in development");
+  await prisma.gymConfig.upsert({
+    where: { userId: user.gymOwnerId },
+    update: { testTimeOffset: offsetMs },
+    create: { userId: user.gymOwnerId, testTimeOffset: offsetMs },
+  });
+  logActivity("settings.test_time.updated", JSON.stringify({ offsetMs }));
+  revalidatePath("/settings");
+}
+
+export async function clearTestTimeOffset() {
+  const user = await requireAdmin();
+  if (process.env.NODE_ENV !== "development") throw new Error("Only available in development");
+  await prisma.gymConfig.update({
+    where: { userId: user.gymOwnerId },
+    data: { testTimeOffset: null },
+  });
+  logActivity("settings.test_time.cleared");
+  revalidatePath("/settings");
+}

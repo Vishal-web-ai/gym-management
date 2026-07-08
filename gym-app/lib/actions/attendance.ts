@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { getDistance } from "@/lib/geo";
 import { logActivity } from "@/lib/actions/activity";
+import { getNow } from "@/lib/now";
 
 export async function getMembersForAttendance() {
   const user = await requireAdmin();
@@ -33,7 +34,7 @@ export async function checkIn(memberId: string) {
   if (member.status === "Expired") throw new Error("Membership has expired");
   if (member.status === "Overdue" && member.endDate) {
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
-    if (new Date() > graceEnd) throw new Error("Membership has expired");
+    if ((await getNow()) > graceEnd) throw new Error("Membership has expired");
   }
 
   const record = await prisma.attendance.create({
@@ -118,7 +119,7 @@ export async function checkInByPhone(
   }
   if (member.status === "Overdue" && member.endDate) {
     const graceEnd = new Date(member.endDate.getTime() + 10 * 24 * 60 * 60 * 1000);
-    if (new Date() > graceEnd) throw new Error("Membership has expired");
+    if ((await getNow()) > graceEnd) throw new Error("Membership has expired");
   }
 
   if (config && config.gymLat !== null && config.gymLng !== null && config.gymRadius !== null) {
