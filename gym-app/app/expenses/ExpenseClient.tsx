@@ -146,15 +146,15 @@ export default function ExpenseClient({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springGentle, delay: 0.1 }}
-        className="glass-card flex items-center justify-between rounded-xl p-4"
+        className="glass-card flex items-center justify-between gap-3 rounded-xl p-4"
       >
-        <div>
+        <div className="min-w-0">
           <p className="text-sm text-text-secondary">Total Expenses</p>
-          <p className="text-2xl font-bold text-text-primary">
+          <p className="text-2xl font-bold text-text-primary truncate">
             ₹{total.toLocaleString("en-IN")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={async () => {
@@ -477,24 +477,22 @@ export default function ExpenseClient({
                       <Pencil size={14} />
                     </motion.button>
                     {deleteId === expense.id ? (
-                      <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
                         {deleteError && (
                           <span className="text-xs text-red-400">{deleteError}</span>
                         )}
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleDelete(expense.id)}
-                            className="rounded-lg bg-red-500 px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 min-h-[32px]"
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(null)}
-                            className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary min-h-[32px]"
-                          >
-                            No
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleDelete(expense.id)}
+                          className="rounded-lg bg-red-500 px-2 py-1.5 text-xs font-medium text-white hover:opacity-90 min-h-[32px]"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(null)}
+                          className="rounded-lg bg-white/[0.06] px-2 py-1.5 text-xs text-text-muted hover:text-text-primary min-h-[32px]"
+                        >
+                          No
+                        </button>
                       </div>
                     ) : (
                       <motion.button

@@ -378,7 +378,7 @@ export default function OnboardingPage() {
                                 className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
                               />
                             </div>
-                            <div className="w-28 space-y-1.5">
+                            <div className="w-20 sm:w-28 space-y-1.5">
                               <label className="text-xs text-text-muted">Price (₹)</label>
                               <input
                                 type="number"
@@ -388,7 +388,7 @@ export default function OnboardingPage() {
                                 className="w-full rounded-lg bg-white/[0.04] px-3.5 py-3 text-sm text-text-primary placeholder-text-muted outline-none transition-all duration-200 focus:bg-white/[0.06]"
                               />
                             </div>
-                            <div className="w-24 space-y-1.5">
+                            <div className="w-18 sm:w-24 space-y-1.5">
                               <label className="text-xs text-text-muted">Months</label>
                               <input
                                 type="number"

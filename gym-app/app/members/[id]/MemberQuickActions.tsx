@@ -74,7 +74,7 @@ export default function MemberQuickActions({
               ),
             )
           }
-          className="flex flex-1 items-center justify-center gap-0 rounded-xl bg-primary/10 py-3 text-sm font-medium text-primary hover:bg-primary/20 min-h-[48px]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary/10 py-3 text-sm font-medium text-primary hover:bg-primary/20 min-h-[48px]"
         >
           <LogIn size={18} />
           Check-in Link
