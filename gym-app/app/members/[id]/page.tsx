@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Tags, History } from "lucide-react";
+import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, History } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth";
 import { getNow } from "@/lib/now";
 import {
@@ -124,22 +124,6 @@ export default async function MemberDetailPage({
         </div>
 
         <div className="mt-4 space-y-2 border-t border-white/[0.06] pt-4">
-          {member.plan && (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                <Tags size={14} />
-              </span>
-              {member.plan.name} — ₹{member.plan.price.toLocaleString("en-IN")}
-            </div>
-          )}
-          {member.gender && (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="flex size-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                <VenusAndMars size={14} />
-              </span>
-              {member.gender}
-            </div>
-          )}
           {latestPayment && (
             <div className="flex items-center gap-3 text-sm">
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -148,6 +132,14 @@ export default async function MemberDetailPage({
               {member.plan
                 ? `${member.plan.name}(₹${latestPayment.amount.toLocaleString("en-IN")}) — ${new Date(latestPayment.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
                 : `₹${latestPayment.amount.toLocaleString("en-IN")} — ${new Date(latestPayment.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`}
+            </div>
+          )}
+          {member.gender && (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                <VenusAndMars size={14} />
+              </span>
+              {member.gender}
             </div>
           )}
           {member.endDate && (
