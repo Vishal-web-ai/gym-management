@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Tags } from "lucide-react";
+import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Tags, History } from "lucide-react";
 import { requireAdminPage } from "@/lib/auth";
 import { getNow } from "@/lib/now";
 import {
@@ -74,6 +74,9 @@ export default async function MemberDetailPage({
   if (!member) notFound();
 
   const memberName = member.firstName;
+  const latestPayment = payments.length > 0
+    ? payments.reduce((a, b) => new Date(a.createdAt) > new Date(b.createdAt) ? a : b)
+    : null;
 
   return (
     <div className="space-y-4 p-3 animate-fade-in">
@@ -135,6 +138,16 @@ export default async function MemberDetailPage({
                 <VenusAndMars size={14} />
               </span>
               {member.gender}
+            </div>
+          )}
+          {latestPayment && (
+            <div className="flex items-center gap-3 text-sm">
+              <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <History size={14} />
+              </span>
+              {member.plan
+                ? `${member.plan.name}(₹${latestPayment.amount.toLocaleString("en-IN")}) — ${new Date(latestPayment.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                : `₹${latestPayment.amount.toLocaleString("en-IN")} — ${new Date(latestPayment.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`}
             </div>
           )}
           {member.endDate && (

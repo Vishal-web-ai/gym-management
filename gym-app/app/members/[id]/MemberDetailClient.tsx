@@ -13,7 +13,6 @@ import {
   AlertCircle,
   ChevronDown,
   Check,
-  History,
   type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -194,35 +193,8 @@ export default function MemberDetailClient({
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const latestPayment = payments.length > 0
-    ? payments.reduce((a, b) => new Date(a.createdAt) > new Date(b.createdAt) ? a : b)
-    : null;
-
   return (
     <>
-      {latestPayment && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springGentle, delay: 0.1 }}
-          className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-3 text-sm"
-        >
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <History size={14} />
-          </span>
-          <span className="text-text-secondary">Latest Payment</span>
-          <span className="ml-auto font-medium text-text-primary">
-            ₹{latestPayment.amount.toLocaleString("en-IN")}
-            {" — "}
-            {new Date(latestPayment.createdAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-        </motion.div>
-      )}
-
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
