@@ -42,7 +42,7 @@ export const updateMemberSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50),
   phone: phoneSchema,
   address: z.string().max(200).optional().or(z.literal("")),
-  status: z.enum(["Active", "Overdue", "Frozen", "Expired"]),
+  status: z.enum(["Active", "Overdue", "Frozen"]),
   gender: requiredString("Gender is required").pipe(genderSchema),
   endDate: requiredString("End date is required"),
   planId: requiredString("Plan is required"),

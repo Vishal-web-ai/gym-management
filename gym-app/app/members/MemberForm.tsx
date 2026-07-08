@@ -245,9 +245,8 @@ export default function MemberForm({
             value={defaultValues.status}
             options={[
               { value: "Active", label: "Active" },
-              { value: "Overdue", label: "Overdue" },
-              { value: "Frozen", label: "Frozen" },
-              { value: "Expired", label: "Expired" },
+                { value: "Overdue", label: "Overdue" },
+                { value: "Frozen", label: "Frozen" },
             ]}
           />
         </div>

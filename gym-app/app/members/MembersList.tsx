@@ -16,7 +16,6 @@ const filterPill: Record<string, string> = {
   Active: "border-emerald-500/20 text-emerald-400",
   Overdue: "border-red-500/20 text-red-400",
   Frozen: "border-cyan-500/20 text-cyan-400",
-  Expired: "border-slate-500/20 text-slate-400",
 };
 
 const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
@@ -67,7 +66,7 @@ export default function MembersList({
     const q = search.toLowerCase();
     return (
       (name.includes(q) || m.phone.includes(q)) &&
-      (filter === "All" || m.status === filter)
+      (filter === "All" || (filter === "Overdue" ? m.status === "Overdue" || m.status === "Expired" : m.status === filter))
     );
   }), [members, search, filter]);
 
@@ -288,7 +287,7 @@ export default function MembersList({
         transition={{ ...springGentle, delay: 0.2 }}
         className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden"
       >
-        {["All", "Active", "Overdue", "Frozen", "Expired"].map((f) => (
+        {["All", "Active", "Overdue", "Frozen"].map((f) => (
           <motion.button
             key={f}
             whileHover={{ scale: 1.03 }}
@@ -324,8 +323,8 @@ export default function MembersList({
                 key={member.id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ ...springGentle, delay: 0.3 + i * 0.04 }}
+                exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                transition={{ ...springGentle, delay: i * 0.03 }}
                 layout
               >
                 <Link

@@ -469,16 +469,10 @@ export async function updateMemberStatuses() {
 
   if (config?.lastStatusCheckAt && config.lastStatusCheckAt > sixHoursAgo) return;
 
-  const tenDaysAgo = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
-
-  const [activeOverdue, overdueExpired] = await Promise.all([
+  const [activeOverdue] = await Promise.all([
     prisma.member.updateMany({
       where: { userId: ownerId, status: "Active", endDate: { lt: now } },
       data: { status: "Overdue" },
-    }),
-    prisma.member.updateMany({
-      where: { userId: ownerId, status: "Overdue", endDate: { lt: tenDaysAgo } },
-      data: { status: "Expired" },
     }),
   ]);
 
@@ -490,8 +484,5 @@ export async function updateMemberStatuses() {
 
   if (activeOverdue.count > 0) {
     logActivity("member.status_auto", JSON.stringify({ from: "Active", to: "Overdue", count: activeOverdue.count }));
-  }
-  if (overdueExpired.count > 0) {
-    logActivity("member.status_auto", JSON.stringify({ from: "Overdue", to: "Expired", count: overdueExpired.count }));
   }
 }

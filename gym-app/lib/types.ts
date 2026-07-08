@@ -1,4 +1,4 @@
-export type MemberStatus = "Active" | "Overdue" | "Frozen" | "Expired";
+export type MemberStatus = "Active" | "Overdue" | "Frozen";
 
 export type PaymentMode = "Cash" | "UPI" | "Card";
 

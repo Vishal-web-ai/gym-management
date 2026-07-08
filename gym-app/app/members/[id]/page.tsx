@@ -104,7 +104,7 @@ export default async function MemberDetailPage({
                   Active: "bg-emerald-500/10 text-emerald-400",
                   Overdue: "bg-red-500/10 text-red-400",
                   Frozen: "bg-cyan-500/10 text-cyan-400",
-                  Expired: "bg-slate-500/10 text-slate-400",
+                  Expired: "bg-red-500/10 text-red-400",
                 } as Record<string, string>)[member.status]
               }`}
             >
@@ -151,7 +151,7 @@ export default async function MemberDetailPage({
                   const end = new Date(member.endDate);
                   const days = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
                   return end < now
-                    ? `Expired ${Math.abs(days)} days ago`
+                    ? `Overdue ${Math.abs(days)} days ago`
                     : days === 0
                       ? "Expires today"
                       : `${days} days remaining`;
