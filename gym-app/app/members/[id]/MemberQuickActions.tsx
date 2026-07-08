@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useActionState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { MessageCircleMore, Trash2, AlertCircle, LogIn } from "lucide-react";
 import { deleteMember } from "@/lib/actions/members";
@@ -26,14 +25,12 @@ export default function MemberQuickActions({
   gymUserId: string;
   gymName?: string;
 }) {
-  const router = useRouter();
   const [showDelete, setShowDelete] = useState(false);
 
   const [deleteError, deleteAction, deletePending] = useActionState(
     async (_: string | null) => {
       try {
         await deleteMember(memberId);
-        router.push("/members");
       } catch (e) {
         return formatError(e);
       }

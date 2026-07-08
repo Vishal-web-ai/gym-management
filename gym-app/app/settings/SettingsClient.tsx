@@ -2,23 +2,20 @@
 
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Edit3, Trash2, AlertCircle, Dumbbell, Pencil, X, Check, Download, Upload, HardDrive, MapPin, Clock } from "lucide-react";
-import { updateGymName, updateOwnerName, updateGymLocation, setTestTimeOffset, clearTestTimeOffset } from "@/lib/actions/settings";
+import { Edit3, Trash2, AlertCircle, Dumbbell, Pencil, X, Check, Download, Upload, HardDrive, MapPin } from "lucide-react";
+import { updateGymName, updateOwnerName, updateGymLocation } from "@/lib/actions/settings";
 import { createPlan, updatePlan, deletePlan } from "@/lib/actions/plans";
 import { exportBackup, importBackup } from "@/lib/actions/backup";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 const springGentle = { type: "spring" as const, stiffness: 200, damping: 25, mass: 1 };
-const isDev = process.env.NODE_ENV === "development";
 
 export default function SettingsClient({
   config,
   plans,
-  testTimeOffset,
 }: {
   config: { gymName: string; ownerName: string | null; gymLat: number | null; gymLng: number | null; gymRadius: number | null };
   plans: { id: string; name: string; price: number; durationDays: number }[];
-  testTimeOffset: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [ownerName, setOwnerName] = useState(config.ownerName ?? "");
@@ -568,73 +565,7 @@ export default function SettingsClient({
         <p className="text-xs text-text-muted">Backup exports all data as JSON. Restore overwrites existing records.</p>
       </motion.div>
 
-      {isDev && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...springGentle, delay: 0.4 }}
-          className="glass-card rounded-xl p-5 space-y-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-              <Clock size={18} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>Test Clock</h3>
-              <p className="text-xs text-text-muted">Shift the server clock forward to test time-based features</p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: "+1 day", ms: 86400000 },
-              { label: "+7 days", ms: 7 * 86400000 },
-              { label: "+10 days", ms: 10 * 86400000 },
-              { label: "+15 days", ms: 15 * 86400000 },
-              { label: "+30 days", ms: 30 * 86400000 },
-            ].map((preset) => (
-              <motion.button
-                key={preset.label}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setTestTimeOffset(preset.ms)}
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition-all min-h-[36px] ${
-                  testTimeOffset === preset.ms
-                    ? "bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30"
-                    : "bg-white/[0.06] text-text-secondary hover:bg-white/[0.1] hover:text-text-primary"
-                }`}
-              >
-                {preset.label}
-              </motion.button>
-            ))}
-            {testTimeOffset > 0 && (
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={clearTestTimeOffset}
-                className="rounded-lg bg-red-500/10 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/20 transition-all min-h-[36px]"
-              >
-                Reset
-              </motion.button>
-            )}
-          </div>
-
-          {testTimeOffset > 0 && (
-            <div className="rounded-lg bg-white/[0.04] px-4 py-3 space-y-1">
-              <p className="text-xs text-text-muted">
-                Real time: <span className="text-text-primary">{new Date().toLocaleString("en-IN")}</span>
-              </p>
-              <p className="text-xs text-text-muted">
-                Server sees:{" "}
-                <span className="font-medium text-amber-400">
-                  {new Date(Date.now() + testTimeOffset).toLocaleString("en-IN")}
-                </span>
-              </p>
-              <p className="text-xs text-text-muted">
-                Offset: <span className="text-text-primary">+{Math.round(testTimeOffset / 3600000)} hours</span>
-              </p>
-            </div>
-          )}
-        </motion.div>
-      )}
 
       <ConfirmDialog
         open={deletePlanId !== null}

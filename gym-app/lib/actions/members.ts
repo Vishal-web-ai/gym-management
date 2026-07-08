@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   createMemberSchema,
@@ -30,6 +31,7 @@ export async function getMembers() {
 export async function getMembersPaginated(skip = 0, take = 20) {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
+  await updateMemberStatuses().catch(() => {});
   const [members, total] = await prisma.$transaction([
     prisma.member.findMany({
       where: { userId: ownerId },
@@ -44,6 +46,7 @@ export async function getMembersPaginated(skip = 0, take = 20) {
 
 export async function getMemberById(id: string) {
   const user = await requireAdmin();
+  await updateMemberStatuses().catch(() => {});
   return prisma.member.findUnique({
     where: { id, userId: user.gymOwnerId },
     include: { plan: true },
@@ -189,6 +192,7 @@ export async function deleteMember(id: string) {
   await prisma.member.delete({ where: { id, userId: ownerId } });
   logActivity("member.deleted", JSON.stringify({ id }));
   revalidatePath("/members");
+  redirect("/members");
 }
 
 export async function logPayment(formData: FormData) {

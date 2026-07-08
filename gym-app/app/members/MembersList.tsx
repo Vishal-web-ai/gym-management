@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useState, useRef, useMemo, useEffect } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { Search, Phone, ChevronRight, Loader2, Download, Upload, Smartphone, CheckCircle, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -30,8 +30,16 @@ export default function MembersList({
   initialHasMore: boolean;
   gymName?: string;
 }) {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+
+  useEffect(() => {
+    queryClient.setQueryData(["members", "infinite"], {
+      pages: [{ members: initial as any, total: 0, hasMore: initialHasMore }],
+      pageParams: [0],
+    });
+  }, [initial, initialHasMore, queryClient]);
 
   const {
     data,
