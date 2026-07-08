@@ -79,7 +79,7 @@ export async function requireRole(...roles: Role[]): Promise<CurrentUser> {
 
 export async function requireRolePage(...roles: Role[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (!user) redirect("/sign-in");
+  if (!user) redirect("/access-denied");
   if (!user.role || !roles.includes(user.role)) {
     redirect("/access-denied");
   }

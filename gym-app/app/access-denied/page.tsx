@@ -20,6 +20,13 @@ export default function AccessDeniedPage() {
         >
           Go Home
         </Link>
+
+        <p className="text-xs text-text-muted">
+          Are you a staff member?{" "}
+          <Link href="/sign-in" className="text-primary underline underline-offset-2 hover:opacity-80">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
