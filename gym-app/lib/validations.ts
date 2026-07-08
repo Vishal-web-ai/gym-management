@@ -3,7 +3,13 @@ import { z } from "zod";
 export const phoneSchema = z
   .string()
   .min(10, "Phone number must be at least 10 digits")
-  .transform((v) => v.replace(/[\s\-\(\)]/g, ""));
+  .transform((v) => {
+    let clean = v.replace(/[\s\-\(\)]/g, "");
+    if (!clean.startsWith("+")) {
+      clean = clean.length === 12 && clean.startsWith("91") ? "+" + clean : "+91" + clean;
+    }
+    return clean;
+  });
 
 export const genderSchema = z.enum(["Male", "Female", "Other"]);
 

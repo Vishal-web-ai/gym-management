@@ -1,7 +1,7 @@
 export function waUrl(phone: string, text: string): string {
   let clean = phone.replace(/[\s\-\(\)]/g, "");
   if (!clean.startsWith("+")) {
-    clean = "+91" + clean;
+    clean = clean.length === 12 && clean.startsWith("91") ? "+" + clean : "+91" + clean;
   }
   return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
 }
