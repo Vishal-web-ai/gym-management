@@ -13,7 +13,8 @@ export default function SuccessOverlay({
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    requestAnimationFrame(() => setShow(true));
+    const id = requestAnimationFrame(() => setShow(true));
+    return () => cancelAnimationFrame(id);
   }, []);
 
   const particles = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => {

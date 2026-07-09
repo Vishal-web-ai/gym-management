@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useActionState } from "react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Phone, ChevronRight, Loader2, Download, Upload, Smartphone, CheckCircle, X } from "lucide-react";
+import { Search, Phone, Plus, Loader2, Download, Upload, Smartphone, X, AlertCircle, CheckCircle, ChevronDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import Select from "@/components/Select";
 import type { Member } from "@/lib/types";
-import { getMembersPaginated, exportMembersCSV, getOverdueMembers, importMembersCSV } from "@/lib/actions/members";
+import { getMembersPaginated, exportMembersCSV, getOverdueMembers, importMembersCSV, logPayment } from "@/lib/actions/members";
+import { formatError } from "@/lib/actions/helpers";
 import { overdueBulkMessage } from "@/lib/whatsapp";
 import Modal from "@/components/Modal";
 import ProfilePhoto from "@/components/ProfilePhoto";
@@ -24,21 +27,17 @@ export default function MembersList({
   initial,
   initialHasMore,
   gymName,
+  plans = [],
 }: {
   initial: Member[];
   initialHasMore: boolean;
   gymName?: string;
+  plans?: { id: string; name: string; price: number; durationDays: number }[];
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
-
-  useEffect(() => {
-    queryClient.setQueryData(["members", "infinite"], {
-      pages: [{ members: initial as any, total: 0, hasMore: initialHasMore }],
-      pageParams: [0],
-    });
-  }, [initial, initialHasMore, queryClient]);
 
   const {
     data,
@@ -79,6 +78,50 @@ export default function MembersList({
   const [importResult, setImportResult] = useState<{ created: number; errors: string[] } | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number>(0);
+
+  useEffect(() => {
+    return () => clearTimeout(toastTimer.current);
+  }, []);
+
+  const [payMemberId, setPayMemberId] = useState<string | null>(null);
+  const [payPlanId, setPayPlanId] = useState("");
+  const [payPlanOpen, setPayPlanOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const payPlanRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (payPlanRef.current && !payPlanRef.current.contains(e.target as Node)) {
+        setPayPlanOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const [payError, payDispatch, payPending] = useActionState(
+    async (_: string | null, formData: FormData) => {
+      try {
+        await logPayment(formData);
+        setPayMemberId(null);
+        setPayPlanId("");
+        setPayAmount("");
+        router.refresh();
+      } catch (e) {
+        return formatError(e);
+      }
+      return null;
+    },
+    null,
+  );
+
+  function openPayModal(memberId: string) {
+    setPayMemberId(memberId);
+    setPayPlanId("");
+    setPayAmount("");
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -327,22 +370,54 @@ export default function MembersList({
                 transition={{ ...springGentle, delay: i * 0.03 }}
                 layout
               >
-                <Link
-                  href={`/members/${member.id}`}
-                  className="glass-card flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]"
-                >
-                  <ProfilePhoto image={member.image} name={member.firstName} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-text-primary">
-                      {name}
-                    </p>
-                    <span className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
-                      <Phone size={13} />
-                      {member.phone}
-                    </span>
-                  </div>
-                  <ChevronRight size={18} className="text-text-muted" />
-                </Link>
+                <div className="glass-card flex items-center gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]">
+                  <Link
+                    href={`/members/${member.id}`}
+                    className="flex items-center gap-4 flex-1 min-w-0"
+                  >
+                    <ProfilePhoto image={member.image} name={member.firstName} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-medium text-text-primary">
+                          {name}
+                        </p>
+                        {member.status === "Frozen" && (
+                          <span className="shrink-0 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-medium text-cyan-400">
+                            Frozen
+                          </span>
+                        )}
+                        {member.status === "Overdue" && (
+                          <span className="shrink-0 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
+                        <Phone size={13} />
+                        {member.phone}
+                      </span>
+                    </div>
+                  </Link>
+                  {member.status === "Active" ? (
+                    <button
+                      onClick={() => {
+                        setToast("Payment has already been done");
+                        clearTimeout(toastTimer.current);
+                        toastTimer.current = Number(setTimeout(() => setToast(null), 2500));
+                      }}
+                      className="flex size-8 items-center justify-center rounded-full bg-orange-500/15 text-orange-400 hover:bg-orange-500/25 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openPayModal(member.id)}
+                      className="flex size-8 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  )}
+                </div>
               </motion.div>
             );
           })}
@@ -379,6 +454,131 @@ export default function MembersList({
           </motion.div>
         )}
       </div>
+
+      <Modal open={!!payMemberId} onClose={() => setPayMemberId(null)}>
+        <div className="glass-card rounded-2xl p-6">
+          <h3 className="mb-4 text-lg font-semibold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+            Log Payment
+          </h3>
+          <form action={payDispatch} className="space-y-3">
+            <input type="hidden" name="memberId" value={payMemberId ?? ""} />
+            {payError && (
+              <div className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <span>{payError}</span>
+              </div>
+            )}
+            {plans.length > 0 && (
+              <div className="relative" ref={payPlanRef}>
+                <button
+                  type="button"
+                  onClick={() => setPayPlanOpen(!payPlanOpen)}
+                  className={`flex w-full items-center gap-3 rounded-lg bg-white/[0.04] px-4 py-3 text-sm outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 ${payPlanId ? "text-text-primary" : "text-text-muted"}`}
+                >
+                  <span className="flex-1 text-left">
+                    {payPlanId
+                      ? plans.find((p) => p.id === payPlanId)?.name || "Select membership plan"
+                      : "Select membership plan"}
+                  </span>
+                  <ChevronDown size={14} className={`shrink-0 text-text-muted transition-transform duration-200 ${payPlanOpen ? "rotate-180" : ""}`} />
+                </button>
+                <AnimatePresence>
+                  {payPlanOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl"
+                    >
+                      {plans.map((p) => {
+                        const selected = payPlanId === p.id;
+                        return (
+                          <motion.button
+                            key={p.id}
+                            type="button"
+                            whileHover={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+                            onClick={() => {
+                              setPayPlanId(p.id);
+                              setPayAmount(String(p.price));
+                              setPayPlanOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                              selected
+                                ? "bg-primary/15 text-primary"
+                                : "text-text-secondary hover:text-text-primary"
+                            }`}
+                          >
+                            <span className="flex-1 text-left">{p.name}</span>
+                            <span className="text-text-muted">₹{p.price.toLocaleString("en-IN")}</span>
+                            {selected && <Check size={14} className="shrink-0 text-primary" />}
+                          </motion.button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <input type="hidden" name="planId" value={payPlanId} required={plans.length > 0} />
+              </div>
+            )}
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-text-muted pointer-events-none">₹</span>
+              <input
+                name="amount"
+                type="number"
+                step="0.01"
+                required
+                placeholder="0"
+                value={payAmount}
+                onChange={(e) => setPayAmount(e.target.value)}
+                autoComplete="off"
+                className="w-full rounded-lg bg-white/[0.04] py-3 pl-8 pr-4 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
+              />
+            </div>
+            <Select
+              name="mode"
+              required
+              placeholder="Select mode"
+              options={[
+                { value: "Cash", label: "Cash" },
+                { value: "UPI", label: "UPI" },
+                { value: "Card", label: "Card" },
+              ]}
+            />
+            <div className="flex gap-2 pt-1">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="submit"
+                disabled={payPending}
+                className="flex-1 rounded-lg bg-primary py-3 text-sm font-medium text-white disabled:opacity-50 min-h-[48px]"
+              >
+                {payPending ? "Saving..." : "Record Payment"}
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                type="button"
+                onClick={() => setPayMemberId(null)}
+                className="rounded-lg bg-white/[0.06] px-4 py-3 text-sm text-text-muted min-h-[48px]"
+              >
+                Cancel
+              </motion.button>
+            </div>
+          </form>
+        </div>
+      </Modal>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-400 text-center border border-red-500/20 shadow-lg"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

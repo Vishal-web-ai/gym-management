@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Edit3, Trash2, AlertCircle, Dumbbell, Pencil, X, Check, Download, Upload, HardDrive, MapPin } from "lucide-react";
 import { updateGymName, updateOwnerName, updateGymLocation } from "@/lib/actions/settings";
@@ -32,6 +32,13 @@ export default function SettingsClient({
   const [editPlanPrice, setEditPlanPrice] = useState("");
   const [editPlanMonths, setEditPlanMonths] = useState("");
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+
+  const [testMonths, setTestMonths] = useState(0);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("testOverdueMonths");
+    if (stored) setTestMonths(parseInt(stored, 10) || 0);
+  }, []);
 
   const [backingUp, setBackingUp] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -352,6 +359,53 @@ export default function SettingsClient({
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ ...springGentle, delay: 0.15 }}
+        className="glass-card rounded-xl p-5 space-y-3"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            Test Overdue Display
+          </h2>
+        </div>
+        <p className="text-xs text-text-muted">
+          Simulate a future date on member profiles to preview overdue text.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min="0"
+            max="12"
+            value={testMonths}
+            onChange={(e) => {
+              const v = e.target.value;
+              setTestMonths(parseInt(v, 10) || 0);
+              localStorage.setItem("testOverdueMonths", v);
+            }}
+            className="w-20 rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-text-primary outline-none text-center"
+          />
+          <span className="text-sm text-text-muted">months ahead</span>
+          <button
+            onClick={() => {
+              setTestMonths(0);
+              localStorage.setItem("testOverdueMonths", "0");
+            }}
+            className="ml-auto rounded-lg bg-white/[0.06] px-3 py-2 text-xs text-text-muted hover:text-text-primary"
+          >
+            Reset
+          </button>
+        </div>
+        {testMonths > 0 && (
+          <div className="rounded-lg bg-amber-500/10 px-3 py-2">
+            <p className="text-xs text-amber-400">
+              +{testMonths}mo enabled — member profiles will show simulated overdue text.
+            </p>
+          </div>
+        )}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...springGentle, delay: 0.2 }}
         className="glass-card rounded-xl p-5 space-y-4"
       >
         <div className="flex items-center justify-between">

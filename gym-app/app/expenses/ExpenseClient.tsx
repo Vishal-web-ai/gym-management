@@ -7,9 +7,6 @@ import {
   Trash2,
   AlertCircle,
   IndianRupee,
-  Pencil,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Search,
 } from "lucide-react";
@@ -25,6 +22,7 @@ const categories = [
   "Supplies",
   "Marketing",
   "Rent",
+  "Salary",
   "Other",
 ];
 
@@ -56,11 +54,9 @@ export default function ExpenseClient({
     null,
   );
 
-  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [editLoading, setEditLoading] = useState(false);
 
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
 
   const now = new Date();
@@ -84,25 +80,6 @@ export default function ExpenseClient({
     setYear(y);
   }, []);
 
-  const prevMonth = useCallback(() => {
-    if (month === 0) {
-      goToMonth(11, year - 1);
-    } else {
-      goToMonth(month - 1, year);
-    }
-  }, [month, year, goToMonth]);
-
-  const nextMonth = useCallback(() => {
-    if (month === 11) {
-      goToMonth(0, year + 1);
-    } else {
-      goToMonth(month + 1, year);
-    }
-  }, [month, year, goToMonth]);
-
-  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
-  const isFutureMonth = year > now.getFullYear() || (year === now.getFullYear() && month > now.getMonth());
-
   const filteredExpenses = useMemo(() => expenses.filter((e: any) => {
     const d = new Date(e.date);
     const matchesMonth = d.getMonth() === month && d.getFullYear() === year;
@@ -111,13 +88,11 @@ export default function ExpenseClient({
   }), [expenses, month, year, search]);
 
   async function handleDelete(id: string) {
-    setDeleteError(null);
     try {
       await deleteExpense(id);
       setExpenses((prev) => prev.filter((e: any) => e.id !== id));
-      setDeleteId(null);
-    } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete expense");
+    } catch {
+      // silently fail
     }
   }
 
@@ -186,97 +161,86 @@ export default function ExpenseClient({
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springGentle, delay: 0.15 }}
-        className="glass-card flex items-center gap-2 rounded-xl px-3 py-2"
-      >
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={prevMonth}
-          className="rounded-lg p-2 bg-primary/15 text-primary hover:bg-primary/25 transition-all duration-200"
+      <div className="flex gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle, delay: 0.15 }}
+          className="flex-[7] min-w-0"
         >
-          <ChevronLeft size={18} />
-        </motion.button>
-        <div className="flex-1 relative" ref={monthRef}>
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setMonthOpen(!monthOpen)}
-            className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-1.5 transition-all duration-200"
-          >
-            {monthNames[month]} {year}
-            <motion.div
-              animate={{ rotate: monthOpen ? 180 : 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            >
-              <ChevronDown size={14} />
-            </motion.div>
-          </motion.button>
-          <AnimatePresence>
-            {monthOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl"
-              >
-                <div className="grid grid-cols-3 gap-px p-2">
-                  {monthNames.map((name, i) => {
-                    const disabled = year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth());
-                    return (
-                      <motion.button
-                        key={i}
-                        disabled={disabled}
-                        whileHover={!disabled ? { scale: 1.05 } : undefined}
-                        whileTap={!disabled ? { scale: 0.95 } : undefined}
-                        onClick={() => {
-                          goToMonth(i, year);
-                          setMonthOpen(false);
-                        }}
-                        className={`rounded-lg px-2 py-1.5 text-xs transition-all ${
-                          month === i
-                            ? "bg-primary/20 text-primary font-medium"
-                            : disabled
-                              ? "text-text-muted/30 cursor-not-allowed"
-                              : "text-text-muted hover:bg-white/[0.06] hover:text-text-primary"
-                        }`}
-                      >
-                        {name}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={nextMonth}
-          disabled={isCurrentMonth || isFutureMonth}
-          className="rounded-lg p-2 bg-primary/15 text-primary hover:bg-primary/25 transition-all duration-200 disabled:opacity-30"
-        >
-          <ChevronRight size={18} />
-        </motion.button>
-      </motion.div>
+          <div className="glass-card relative rounded-xl">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
+            <input
+              type="search"
+              placeholder="Search by title..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
+            />
+          </div>
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...springGentle, delay: 0.2 }}
-        className="relative"
-      >
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
-        <input
-          type="search"
-          placeholder="Search by title..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-xl bg-white/[0.04] py-3.5 pl-11 pr-4 text-sm text-text-primary placeholder-text-muted outline-none ring-1 ring-white/[0.08] transition-all duration-200 focus:ring-2 focus:ring-primary/50 focus:bg-white/[0.06]"
-        />
-      </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...springGentle, delay: 0.2 }}
+          className="flex-[3] min-w-0"
+        >
+          <div className="relative" ref={monthRef}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setMonthOpen(!monthOpen)}
+              className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-3.5 transition-all duration-200"
+            >
+              {monthNames[month]} {year}
+              <motion.div
+                animate={{ rotate: monthOpen ? 180 : 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                <ChevronDown size={14} />
+              </motion.div>
+            </motion.button>
+            <AnimatePresence>
+              {monthOpen && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                  className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-white/[0.08] bg-bg-base/95 backdrop-blur-2xl shadow-2xl"
+                >
+                  <div className="grid grid-cols-3 gap-px p-2">
+                    {monthNames.map((name, i) => {
+                      const disabled = year > now.getFullYear() || (year === now.getFullYear() && i > now.getMonth());
+                      return (
+                        <motion.button
+                          key={i}
+                          disabled={disabled}
+                          whileHover={!disabled ? { scale: 1.05 } : undefined}
+                          whileTap={!disabled ? { scale: 0.95 } : undefined}
+                          onClick={() => {
+                            goToMonth(i, year);
+                            setMonthOpen(false);
+                          }}
+                          className={`rounded-lg px-2 py-1.5 text-xs transition-all ${
+                            month === i
+                              ? "bg-primary/20 text-primary font-medium"
+                              : disabled
+                                ? "text-text-muted/30 cursor-not-allowed"
+                                : "text-text-muted hover:bg-white/[0.06] hover:text-text-primary"
+                          }`}
+                        >
+                          {name}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </div>
 
       <AnimatePresence>
         {showForm && (
@@ -440,72 +404,51 @@ export default function ExpenseClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ ...springGentle, delay: 0.15 + i * 0.03 }}
-                className="glass-card flex items-center gap-3 sm:gap-4 rounded-xl p-4 transition-all duration-200 hover:bg-white/[0.06] hover:-translate-y-0.5 active:scale-[0.97]"
+                className="relative overflow-hidden rounded-xl"
               >
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
-                  <Receipt size={18} />
+                <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-red-500/20 rounded-xl">
+                  <Trash2 size={20} className="text-red-400" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-text-primary">
-                    {expense.title}
-                  </p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-muted">
-                    <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5">
-                      {expense.category}
-                    </span>
-                    <span className="shrink-0">
-                      {new Date(expense.date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-                  <p className="text-sm font-semibold text-text-primary text-nowrap">
-                    <IndianRupee size={12} className="inline" />
-                    {expense.amount.toLocaleString("en-IN")}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => setEditId(expense.id)}
-                      aria-label="Edit expense"
-                      className="flex size-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-secondary/10 hover:text-secondary"
-                    >
-                      <Pencil size={14} />
-                    </motion.button>
-                    {deleteId === expense.id ? (
-                      <div className="flex items-center gap-1">
-                        {deleteError && (
-                          <span className="text-xs text-red-400">{deleteError}</span>
-                        )}
-                        <button
-                          onClick={() => handleDelete(expense.id)}
-                          className="rounded-lg bg-red-500 px-2 py-1.5 text-xs font-medium text-white hover:opacity-90 min-h-[32px]"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(null)}
-                          className="rounded-lg bg-white/[0.06] px-2 py-1.5 text-xs text-text-muted hover:text-text-primary min-h-[32px]"
-                        >
-                          No
-                        </button>
+
+                <motion.div
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={{ left: 0.4, right: 0.4 }}
+                  onDragEnd={(_, info) => {
+                    if (info.offset.x < -80) handleDelete(expense.id);
+                    else if (info.offset.x > 80) setEditId(expense.id);
+                  }}
+                  animate={{ x: 0 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  className="glass-card rounded-xl p-4 relative z-10 bg-bg-base transition-all duration-200 hover:bg-white/[0.06]"
+                >
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary/10 text-secondary">
+                      <Receipt size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-text-primary">
+                        {expense.title}
+                      </p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-text-muted">
+                        <span className="shrink-0 rounded-md bg-white/[0.04] px-2 py-0.5">
+                          {expense.category}
+                        </span>
+                        <span className="shrink-0">
+                          {new Date(expense.date).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
                       </div>
-                    ) : (
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => setDeleteId(expense.id)}
-                        aria-label="Delete expense"
-                        className="flex size-9 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-red-500/10 hover:text-red-400"
-                      >
-                        <Trash2 size={15} />
-                      </motion.button>
-                    )}
+                    </div>
+                    <p className="text-sm font-semibold text-text-primary text-nowrap shrink-0">
+                      <IndianRupee size={12} className="inline" />
+                      {expense.amount.toLocaleString("en-IN")}
+                    </p>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             ),
           )}
