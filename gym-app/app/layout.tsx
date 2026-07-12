@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, Oswald, Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import dynamic from "next/dynamic";
@@ -17,6 +17,22 @@ const plusJakarta = Plus_Jakarta_Sans({
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage",
+});
+
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-oswald",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
 });
 
 export const viewport: Viewport = {
@@ -57,7 +73,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" className={`${plusJakarta.variable} ${bricolage.variable} h-full`}>
+      <html lang="en" className={`${plusJakarta.variable} ${bricolage.variable} ${oswald.variable} ${inter.variable} ${jetbrains.variable} h-full`}>
         <head>
           <link rel="preconnect" href="https://clerk.com" />
           <link rel="preconnect" href="https://img.clerk.com" />
