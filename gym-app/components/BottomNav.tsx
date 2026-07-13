@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { LayoutDashboard, Users, UserCheck, Receipt, DollarSign } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
@@ -15,12 +16,15 @@ const navItems = [
   { href: "/attendance", label: "Attendance", icon: UserCheck },
 ];
 
-const spring = { type: "spring" as const, stiffness: 500, damping: 35, mass: 0.8 };
-
 export default function BottomNav() {
   const pathname = usePathname();
   const { isSignedIn } = useUser();
   const prefetch = usePrefetch();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   const isAuthPage =
     pathname === "/" ||
@@ -36,17 +40,23 @@ export default function BottomNav() {
       {isSignedIn && !isAuthPage ? (
         <>
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname.startsWith(href);
+            const isActive = pendingHref ? pendingHref === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
                 prefetch={true}
-                onPointerDown={() => prefetch(href)}
+                onPointerDown={() => {
+                  prefetch(href);
+                  setPendingHref(href);
+                }}
                 className="relative flex flex-col items-center gap-0.5 px-4 py-2 text-xs min-h-[48px] min-w-[48px] justify-center"
               >
                 {isActive && (
-                  <span className="absolute -top-px left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary" />
+                  <motion.span
+                    layoutId="bottomnav-indicator"
+                    className="absolute -top-px left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary"
+                  />
                 )}
                 <motion.div
                   animate={{ scale: isActive ? 1.1 : 1 }}
@@ -54,7 +64,7 @@ export default function BottomNav() {
                 >
                   <Icon
                     size={22}
-                    className={`transition-colors duration-200 ${isActive ? "text-primary" : "text-text-muted hover:text-text-secondary"}`}
+                    className={`transition-colors duration-200 ${isActive ? "text-primary" : "text-text-muted"}`}
                   />
                 </motion.div>
                 <span

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getMembersPaginated } from "@/lib/actions/members";
 import { getAllPayments } from "@/lib/actions/payments";
 import { getCheckInsByDate } from "@/lib/actions/attendance";
-import { getDashboardStats, getMonthlyTrend } from "@/lib/actions/dashboard";
+import { getDashboardData } from "@/lib/actions/dashboard";
 import { getExpenses } from "@/lib/actions/expenses";
 import { useCallback } from "react";
 
@@ -17,13 +17,7 @@ export function usePrefetch() {
       case "/dashboard":
         queryClient.prefetchQuery({
           queryKey: ["dashboard"],
-          queryFn: async () => {
-            const [stats, monthlyTrend] = await Promise.all([
-              getDashboardStats(),
-              getMonthlyTrend(),
-            ]);
-            return { stats, monthlyTrend };
-          },
+          queryFn: () => getDashboardData(),
           staleTime: 30 * 1000,
         });
         break;

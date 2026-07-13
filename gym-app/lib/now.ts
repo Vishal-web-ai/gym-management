@@ -1,7 +1,7 @@
-export async function getNow(): Promise<Date> {
+export function getNow(): Date {
   return new Date();
 }
 
-export async function getNowMs(): Promise<number> {
+export function getNowMs(): number {
   return Date.now();
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
@@ -20,6 +20,11 @@ const navLinks = [
 export default function MarketingNav() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   return (
     <motion.nav
@@ -42,18 +47,22 @@ export default function MarketingNav() {
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 hover:text-[#ff6a00] ${
-                pathname === item.href ? "text-[#ff6a00]" : "text-white/70"
-              }`}
-              style={{ fontFamily: "var(--font-oswald)" }}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navLinks.map((item) => {
+            const isActive = pendingHref ? pendingHref === item.href : pathname === item.href;
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setPendingHref(item.href)}
+                className={`text-sm font-medium uppercase tracking-wider transition-colors duration-200 hover:text-[#ff6a00] ${
+                  isActive ? "text-[#ff6a00]" : "text-white/70"
+                }`}
+                style={{ fontFamily: "var(--font-oswald)" }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
           <Link
             href="/sign-up"
             className="inline-flex items-center justify-center h-[42px] px-6 rounded-xl bg-[#ff6a00] text-xs font-bold uppercase tracking-wide text-white transition-all duration-200 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-lg hover:shadow-[#ff6a00]/25"
@@ -87,19 +96,23 @@ export default function MarketingNav() {
             className="md:hidden overflow-hidden bg-black/90 backdrop-blur-md border-t border-white/5"
           >
             <div className="flex flex-col items-center gap-6 py-8">
-              {navLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileNavOpen(false)}
-                  className={`text-base font-medium uppercase tracking-wider transition-colors duration-200 hover:text-[#ff6a00] ${
-                    pathname === item.href ? "text-[#ff6a00]" : "text-white/80"
-                  }`}
-                  style={{ fontFamily: "var(--font-oswald)" }}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {navLinks.map((item) => {
+            const isActive = pendingHref ? pendingHref === item.href : pathname === item.href;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    onPointerDown={() => setPendingHref(item.href)}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={`text-base font-medium uppercase tracking-wider transition-colors duration-200 hover:text-[#ff6a00] ${
+                      isActive ? "text-[#ff6a00]" : "text-white/80"
+                    }`}
+                    style={{ fontFamily: "var(--font-oswald)" }}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
               <Link
                 href="/sign-up"
                 onClick={() => setMobileNavOpen(false)}

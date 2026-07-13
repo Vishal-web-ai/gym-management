@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { LayoutDashboard, Users, UserCheck, Dumbbell, Receipt, Settings, DollarSign } from "lucide-react";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { motion } from "motion/react";
@@ -23,6 +23,11 @@ export default function SidebarNav() {
   const pathname = usePathname();
   const { isSignedIn } = useUser();
   const prefetch = usePrefetch();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   const isAuthPage =
     pathname === "/" ||
@@ -31,12 +36,6 @@ export default function SidebarNav() {
     pathname === "/member" || pathname.startsWith("/member/") ||
     pathname.startsWith("/check-in") ||
     pathname.startsWith("/access-denied");
-
-  useEffect(() => {
-    if (isSignedIn && !isAuthPage) {
-      navItems.forEach(({ href }) => prefetch(href));
-    }
-  }, [isSignedIn, isAuthPage, prefetch]);
 
   if (!isSignedIn || isAuthPage) return null;
 
@@ -57,7 +56,7 @@ export default function SidebarNav() {
       </motion.div>
       <nav className="flex flex-col gap-1 p-4 flex-1">
         {navItems.map(({ href, label, icon: Icon }, index) => {
-          const isActive = pathname.startsWith(href);
+          const isActive = pendingHref ? pendingHref === href : pathname.startsWith(href);
           return (
             <motion.div
               key={href}
@@ -68,14 +67,19 @@ export default function SidebarNav() {
               <Link
                 href={href}
                 prefetch={true}
-                className={`relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium min-h-[44px] ${
+                onPointerEnter={() => prefetch(href)}
+                onClick={() => setPendingHref(href)}
+                className={`relative flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium min-h-[44px] transition-colors duration-150 ${
                   isActive
                     ? "glass-card-active text-primary"
                     : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
                 }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+                  <motion.span
+                    layoutId="sidebar-indicator"
+                    className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
+                  />
                 )}
                 <Icon size={20} />
                 {label}

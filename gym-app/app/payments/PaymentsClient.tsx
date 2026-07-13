@@ -8,6 +8,7 @@ import { getAllPayments } from "@/lib/actions/payments";
 import { exportPaymentsCSV } from "@/lib/actions/members";
 import { openWhatsApp, receiptMessage } from "@/lib/whatsapp";
 import Link from "next/link";
+import MonthPickerModal from "@/components/MonthPickerModal";
 
 const modeIcons: Record<string, React.ReactNode> = {
   Cash: <Banknote size={14} />,
@@ -50,7 +51,22 @@ export default function PaymentsClient({
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const [monthOpen, setMonthOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const monthRef = useRef<HTMLDivElement>(null);
+
+  const handleExport = async (m: number, y: number): Promise<boolean> => {
+    const isAll = m === -1 && y === -1;
+    const csv = await exportPaymentsCSV(isAll ? undefined : m, isAll ? undefined : y);
+    if (csv.split("\n").length <= 2) return false;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = isAll ? "payments_all.csv" : `payments_${y}_${String(m + 1).padStart(2, "0")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    return true;
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["payments", page, month, year],
@@ -92,6 +108,7 @@ export default function PaymentsClient({
   const totalPages = Math.ceil(total / 30);
 
   return (
+    <>
     <div className="payments-page space-y-4 p-4">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -120,16 +137,7 @@ export default function PaymentsClient({
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
-            onClick={async () => {
-              const csv = await exportPaymentsCSV();
-              const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `payments_${new Date().toISOString().split("T")[0]}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
+            onClick={() => setExportModalOpen(true)}
             className="rounded-xl bg-primary/15 px-3 py-2.5 text-sm font-medium text-primary min-h-[44px] flex items-center gap-1"
           >
             <FileDown size={16} />
@@ -323,5 +331,12 @@ export default function PaymentsClient({
       )}
 
     </div>
+    <MonthPickerModal
+      open={exportModalOpen}
+      onClose={() => setExportModalOpen(false)}
+      onExport={handleExport}
+      title="Export Payments"
+    />
+    </>
   );
 }

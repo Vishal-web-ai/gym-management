@@ -4,19 +4,23 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 export default function SplashScreen() {
-  const [visible, setVisible] = useState(true);
+  const [phase, setPhase] = useState<"show" | "fade" | "done">("show");
 
   useEffect(() => {
-    const timer = setTimeout(() => setVisible(false), 2000);
-    return () => clearTimeout(timer);
+    const showTimer = setTimeout(() => setPhase("fade"), 1500);
+    const fadeTimer = setTimeout(() => setPhase("done"), 2000);
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(fadeTimer);
+    };
   }, []);
 
-  if (!visible) return null;
+  if (phase === "done") return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#080E1A] transition-opacity duration-500"
-      style={{ opacity: visible ? 1 : 0 }}
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#080E1A] transition-opacity duration-500 ease-out"
+      style={{ opacity: phase === "fade" ? 0 : 1 }}
     >
       <Image
         src="/logo/logo.png"

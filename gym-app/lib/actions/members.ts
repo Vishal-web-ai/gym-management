@@ -31,7 +31,6 @@ export async function getMembers() {
 export async function getMembersPaginated(skip = 0, take = 20) {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
-  await updateMemberStatuses().catch(() => {});
   const [members, total] = await prisma.$transaction([
     prisma.member.findMany({
       where: { userId: ownerId },
@@ -328,11 +327,17 @@ export async function exportMembersCSV() {
   return "\uFEFF" + header + rows.join("\n");
 }
 
-export async function exportPaymentsCSV() {
+export async function exportPaymentsCSV(month?: number, year?: number) {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
+  const where: Record<string, unknown> = { userId: ownerId };
+  if (month !== undefined && year !== undefined) {
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    where.createdAt = { gte: start, lt: end };
+  }
   const payments = await prisma.payment.findMany({
-    where: { userId: ownerId },
+    where,
     orderBy: { createdAt: "desc" },
     include: { member: { select: { firstName: true } } },
   });
@@ -349,11 +354,17 @@ export async function exportPaymentsCSV() {
   return "\uFEFF" + header + rows.join("\n");
 }
 
-export async function exportExpensesCSV() {
+export async function exportExpensesCSV(month?: number, year?: number) {
   const user = await requireAdmin();
   const ownerId = user.gymOwnerId;
+  const where: Record<string, unknown> = { userId: ownerId };
+  if (month !== undefined && year !== undefined) {
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    where.date = { gte: start, lt: end };
+  }
   const expenses = await prisma.expense.findMany({
-    where: { userId: ownerId },
+    where,
     orderBy: { date: "desc" },
   });
   const header = "Title,Amount,Category,Date\n";

@@ -2,7 +2,7 @@
 
 import { TrendingUp, Users, AlertTriangle, Receipt } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { getDashboardStats, getMonthlyTrend } from "@/lib/actions/dashboard";
+import { getDashboardData } from "@/lib/actions/dashboard";
 import { StatCardsWrapper, StatCardItem, ChartWrapper } from "@/components/DashboardAnimations";
 import dynamic from "next/dynamic";
 
@@ -41,13 +41,7 @@ function StatCard({ label, value, icon, accent }: StatCard) {
 export default function DashboardShell() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
-    queryFn: async () => {
-      const [stats, monthlyTrend] = await Promise.all([
-        getDashboardStats(),
-        getMonthlyTrend(),
-      ]);
-      return { stats, monthlyTrend };
-    },
+    queryFn: () => getDashboardData(),
     staleTime: 30_000,
   });
 
