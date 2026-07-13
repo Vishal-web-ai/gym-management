@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const ease = [0.23, 1, 0.32, 1] as const;
@@ -29,10 +30,13 @@ export default function MarketingNav() {
     >
       <div className="mx-auto flex h-[70px] md:h-[90px] max-w-[1400px] items-center justify-between px-5 md:px-10">
         <Link href="/" className="flex items-center">
-          <img
-            src="/logo/logo-transparent.png"
+          <Image
+            src="/logo/logo.png"
             alt="Rajoria Fitness"
-            className="h-8 md:h-12 w-auto"
+            width={855}
+            height={292}
+            sizes="120px"
+            className="h-8 md:h-16 w-auto"
           />
         </Link>
 

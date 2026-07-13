@@ -35,6 +35,7 @@ import {
 } from "@/lib/actions/member";
 import ProfilePhoto from "@/components/ProfilePhoto";
 import { AnimatedCard } from "@/components/animations";
+import { displayPhone } from "@/lib/types";
 
 type Tab = "dashboard" | "profile";
 type StreakData = { current: number; best: number };
@@ -920,7 +921,7 @@ function ProfileTab({ memberId, gymUserId, gymName }: { memberId: string; gymUse
           <h1 className="text-xl font-bold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
             {data.member.firstName}
           </h1>
-          <p className="text-sm text-text-muted">{data.member.phone}</p>
+          <p className="text-sm text-text-muted">{displayPhone(data.member.phone)}</p>
         </div>
       </motion.div>
 

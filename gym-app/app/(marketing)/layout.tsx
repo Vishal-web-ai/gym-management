@@ -27,7 +27,7 @@ export default function MarketingLayout({
         }}
       />
 
-      {/* Radial glow gradients — fixed positions, slow pulse */}
+      {/* Radial glow gradients — static, no animation */}
       <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
         {/* Top glow — amber */}
         <div
@@ -39,8 +39,7 @@ export default function MarketingLayout({
             left: "15%",
             background:
               "radial-gradient(ellipse at center, rgba(255,120,0,0.06), transparent 70%)",
-            filter: "blur(40px)",
-            animation: "glow-pulse 8s ease-in-out infinite",
+            filter: "blur(24px)",
           }}
         />
 
@@ -54,9 +53,7 @@ export default function MarketingLayout({
             right: "-5%",
             background:
               "radial-gradient(ellipse at center, rgba(220,38,38,0.04), transparent 70%)",
-            filter: "blur(60px)",
-            animation: "glow-pulse 10s ease-in-out infinite",
-            animationDelay: "3s",
+            filter: "blur(36px)",
           }}
         />
 
@@ -70,9 +67,7 @@ export default function MarketingLayout({
             left: "10%",
             background:
               "radial-gradient(ellipse at center, rgba(255,100,0,0.05), transparent 70%)",
-            filter: "blur(50px)",
-            animation: "glow-pulse 9s ease-in-out infinite",
-            animationDelay: "5s",
+            filter: "blur(30px)",
           }}
         />
       </div>

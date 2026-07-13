@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { displayPhone } from "@/lib/types";
 
 import { Pencil, ArrowLeft, Phone, Calendar, MapPin, VenusAndMars, Dumbbell, UserPlus, IndianRupee } from "lucide-react";
 
@@ -117,7 +118,7 @@ export default async function MemberDetailPage({
             textClassName="text-lg"
           />
           <div className="min-w-0 flex-1 pt-[2px]">
-            <h2 className="truncate text-[22px] font-bold tracking-tight text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+            <h2 className="truncate text-[22px] font-bold tracking-tight text-text-primary member-name" style={{ fontFamily: "var(--font-display)" }}>
               {memberName}
             </h2>
             <span
@@ -145,7 +146,7 @@ export default async function MemberDetailPage({
         </div>
 
         {/* Info Grid */}
-        <div className="mt-[18px] divide-y divide-white/[0.06] border-t border-white/[0.06]">
+        <div className="member-info mt-[18px] divide-y divide-white/[0.06] border-t border-white/[0.06]">
           {/* Row 1: Plan | Start Date */}
           <div className="grid grid-cols-2">
             <div className="flex items-center gap-3 py-[14px] pr-4">
@@ -218,7 +219,7 @@ export default async function MemberDetailPage({
                   href={`tel:${member.phone}`}
                   className="text-[15px] font-semibold text-text-primary hover:opacity-80 transition-opacity"
                 >
-                  {member.phone}
+                  {displayPhone(member.phone)}
                 </a>
               </div>
             </div>

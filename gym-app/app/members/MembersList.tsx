@@ -8,6 +8,7 @@ import { Search, Phone, Plus, Loader2, Download, Upload, Smartphone, X, AlertCir
 import { motion, AnimatePresence } from "motion/react";
 import Select from "@/components/Select";
 import type { Member } from "@/lib/types";
+import { displayPhone } from "@/lib/types";
 import { getMembersPaginated, exportMembersCSV, getOverdueMembers, importMembersCSV, logPayment } from "@/lib/actions/members";
 import { formatError } from "@/lib/actions/helpers";
 import { overdueBulkMessage } from "@/lib/whatsapp";
@@ -394,7 +395,7 @@ export default function MembersList({
                       </div>
                       <span className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
                         <Phone size={13} />
-                        {member.phone}
+                        {displayPhone(member.phone)}
                       </span>
                     </div>
                   </Link>
@@ -573,7 +574,7 @@ export default function MembersList({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-400 text-center border border-red-500/20 shadow-lg"
+            className="fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-sm rounded-xl bg-red-500 px-4 py-3 text-sm text-white font-medium text-center shadow-lg"
           >
             {toast}
           </motion.div>

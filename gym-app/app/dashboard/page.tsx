@@ -43,7 +43,7 @@ const userProfileAppearance = {
 
 export default async function DashboardPage() {
   await requireAdminPage();
-  await updateMemberStatuses();
+  updateMemberStatuses().catch(() => {});
 
   return (
     <div className="space-y-6 px-4 pb-4 pt-4">

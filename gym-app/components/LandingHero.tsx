@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useInView, useScroll, useTransform } from "motion/react";
 import { Users, Star, Dumbbell, Menu, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import WhatsAppModal from "@/components/WhatsAppModal";
 
 const ease = [0.23, 1, 0.32, 1] as const;
@@ -149,15 +150,23 @@ export default function LandingHero() {
     <div className="relative min-h-screen w-full overflow-hidden bg-[#0a0604]">
 
       {/* ═══ LAYER 1: Background image (parallax) ═══ */}
-      <motion.img
-        src="/herosection/back-glow.png"
-        alt=""
-        className="absolute inset-0 h-[120%] w-full object-cover z-[5]"
-        style={{ objectPosition: "center 25%", y: bgY }}
+      <motion.div
+        className="absolute inset-0 z-[5] h-[120%] w-full"
+        style={{ y: bgY }}
         initial={{ opacity: 0, scale: 1.05 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-      />
+      >
+        <Image
+          src="/herosection/back-glow.png"
+          alt=""
+          fill
+          sizes="100vw"
+          priority
+          className="object-cover"
+          style={{ objectPosition: "center 25%" }}
+        />
+      </motion.div>
 
       {/* ═══ LAYER 2: Dark texture ═══ */}
       <div
@@ -235,10 +244,14 @@ export default function LandingHero() {
         >
           <div className="mx-auto flex h-[70px] md:h-[90px] max-w-[1400px] items-center justify-between px-5 md:px-10">
             <Link href="/" className="flex items-center">
-              <img
-                src="/logo/logo-transparent.png"
+              <Image
+                src="/logo/logo.png"
                 alt="Rajoria Fitness"
-                className="h-8 md:h-12 w-auto"
+                width={855}
+                height={292}
+                sizes="120px"
+                className="h-10 md:h-20 w-auto"
+                priority
               />
             </Link>
 
@@ -307,6 +320,26 @@ export default function LandingHero() {
             )}
           </AnimatePresence>
         </motion.nav>
+
+        {/* Badge */}
+        <motion.div
+          custom={0}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+          className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full border border-[#ff6a00]/20 bg-[#ff6a00]/5 px-4 py-1.5 md:px-5 md:py-2 backdrop-blur-sm md:hidden"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ff6a00]/70" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#ff6a00]" />
+          </span>
+          <span
+            className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#ff6a00]"
+            style={{ fontFamily: "var(--font-oswald)" }}
+          >
+            #1 Rated Gym in India
+          </span>
+        </motion.div>
 
         {/* Hero content */}
         <main className="mx-auto flex max-w-[1400px] flex-1 flex-col items-center px-5 md:px-10 pb-[20px] md:pb-[28px] pt-24 md:pt-[90px] text-center">

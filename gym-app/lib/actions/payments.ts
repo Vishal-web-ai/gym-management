@@ -22,7 +22,7 @@ export async function getAllPayments(page = 1, month?: number, year?: number) {
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * take,
       take,
-      include: { member: { select: { firstName: true } } },
+      include: { member: { select: { firstName: true, phone: true } } },
     }),
     prisma.payment.count({ where }),
     prisma.payment.aggregate({

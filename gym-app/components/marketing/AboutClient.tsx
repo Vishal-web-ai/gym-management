@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "motion/react";
+import Image from "next/image";
 import {
   Target,
   Heart,
@@ -133,11 +134,15 @@ function StorySection() {
             transition={{ duration: 0.6, ease, delay: 0.15 }}
             className="relative rounded-2xl overflow-hidden aspect-[4/3]"
           >
-            <img
-              src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop"
-              alt="Rajoria Fitness gym floor"
-              className="h-full w-full object-cover"
-            />
+            <div className="relative h-full w-full">
+              <Image
+                src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=600&fit=crop"
+                alt="Rajoria Fitness gym floor"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
             <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
           </motion.div>
 
@@ -322,10 +327,12 @@ function TeamSection() {
               className="group glass-card rounded-2xl overflow-hidden"
             >
               <div className="relative aspect-[4/5] overflow-hidden">
-                <img
+                <Image
                   src={member.image}
                   alt={member.name}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-5">
@@ -409,10 +416,12 @@ function GallerySection() {
               transition={{ duration: 0.5, ease, delay: 0.1 + i * 0.08 }}
               className="relative rounded-2xl overflow-hidden aspect-[3/2] group"
             >
-              <img
+              <Image
                 src={img.src}
                 alt={img.alt}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 rounded-2xl border border-white/10 pointer-events-none" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-2xl" />

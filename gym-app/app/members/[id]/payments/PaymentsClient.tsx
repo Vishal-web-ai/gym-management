@@ -172,7 +172,7 @@ export default function PaymentsClient({
     <>
       <div className="space-y-3 animate-slide-up delay-2">
         {hasPaymentThisMonth ? (
-          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/15 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-2">
+          <div className="already-logged rounded-xl border border-emerald-400/20 bg-emerald-400/15 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-2">
             <CheckCircle size={16} />
             Payment already logged this month
           </div>
@@ -335,41 +335,29 @@ export default function PaymentsClient({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ ...springGentle, delay: 0.2 + i * 0.04 }}
-                className="glass-card flex items-center gap-4 rounded-xl p-4"
+                className="glass-card flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl p-4"
               >
                 <div
-                  className={`flex size-12 shrink-0 items-center justify-center rounded-xl ${
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
                     payment.status === "Paid"
                       ? "bg-emerald-500/10 text-emerald-400"
                       : "bg-red-500/10 text-red-400"
                   }`}
                 >
                   {payment.status === "Paid" ? (
-                    <CheckCircle size={22} />
+                    <CheckCircle size={18} />
                   ) : (
-                    <XCircle size={22} />
+                    <XCircle size={18} />
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-text-primary">
-                    <IndianRupee size={14} className="inline -ml-0.5 mr-0.5" />
-                    {payment.amount.toLocaleString("en-IN")}
-                  </p>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-text-muted">
-                    <span className="flex items-center gap-1">
-                      <ModeIcon size={13} />
-                      {payment.mode}
-                    </span>
-                    <span>
-                      {new Date(payment.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-text-primary">
+                  <IndianRupee size={13} className="inline -ml-0.5 mr-0.5" />
+                  {payment.amount.toLocaleString("en-IN")}
+                </p>
+                <span className="ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-400">
+                  {payment.status}
+                </span>
+                <div className="flex w-full items-center gap-2 text-[11px] text-text-muted">
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
@@ -379,18 +367,20 @@ export default function PaymentsClient({
                         receiptMessage(memberName, payment.amount, payment.mode, payment.createdAt.toString(), gymName, link),
                       );
                     }}
-                    className="flex items-center gap-1.5 rounded-lg bg-secondary/10 px-2.5 py-1.5 text-xs font-medium text-secondary"
+                    className="shrink-0 rounded-lg bg-secondary/10 px-2 py-1 text-[10px] font-medium text-secondary"
                   >
                     Send Receipt
                   </motion.button>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      payment.status === "Paid"
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : "bg-red-500/10 text-red-400"
-                    }`}
-                  >
-                    {payment.status}
+                  <span className="flex items-center gap-1">
+                    <ModeIcon size={11} />
+                    {payment.mode}
+                  </span>
+                  <span className="ml-auto">
+                    {new Date(payment.createdAt).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
               </motion.div>

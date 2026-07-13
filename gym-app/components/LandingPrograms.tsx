@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useInView, useAnimation } from "motion/react";
+import Image from "next/image";
 import WhatsAppModal from "@/components/WhatsAppModal";
 
 const ease = [0.23, 1, 0.32, 1] as const;
@@ -50,7 +51,7 @@ function TiltCard({
   className,
   inView = false,
   tiltDirection = 1,
-  tiltAngle = 120,
+  tiltAngle = 30,
   disableGyro = false,
   resetKey,
 }: {
@@ -193,7 +194,7 @@ function ImageCarousel({
   setCurrent,
   inView = false,
   tiltDirection = 1 as 1 | -1,
-  tiltAngle = 120,
+  tiltAngle = 30,
   disableGyro = false,
   resetKey,
   showControls = true,
@@ -293,7 +294,14 @@ function ImageCarousel({
               className="absolute inset-0 transition-opacity duration-700 ease-out"
               style={{ opacity: i === current ? 1 : 0 }}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" draggable={false} />
+              <Image
+                src={src}
+                alt=""
+                fill
+                sizes="(max-width: 768px) 320px, 380px"
+                className="object-cover"
+                draggable={false}
+              />
             </div>
           ))}
           <div className="absolute inset-0 rounded-2xl border-[3px] border-[#ff6a00] pointer-events-none" />

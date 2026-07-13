@@ -46,14 +46,17 @@ export default function Select({
   }, [uid]);
 
   useEffect(() => {
-    function handleScroll() {
-      if (open) setOpen(false);
+    function handleScroll(e: Event) {
+      if (!open) return;
+      const menu = document.getElementById(`select-menu-${uid}`);
+      if (menu && menu.contains(e.target as Node)) return;
+      setOpen(false);
     }
     if (open) {
       window.addEventListener("scroll", handleScroll, true);
       return () => window.removeEventListener("scroll", handleScroll, true);
     }
-  }, [open]);
+  }, [open, uid]);
 
   function toggle() {
     if (!open && btnRef.current) {

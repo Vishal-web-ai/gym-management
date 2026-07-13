@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { DollarSign, ChevronLeft, ChevronRight, Loader2, Search, Banknote, Smartphone, CreditCard, FileDown, ChevronDown } from "lucide-react";
+import { DollarSign, ChevronLeft, ChevronRight, Loader2, Search, Banknote, Smartphone, CreditCard, FileDown, Receipt, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { getAllPayments } from "@/lib/actions/payments";
 import { exportPaymentsCSV } from "@/lib/actions/members";
+import { openWhatsApp, receiptMessage } from "@/lib/whatsapp";
 import Link from "next/link";
 
 const modeIcons: Record<string, React.ReactNode> = {
@@ -91,7 +92,7 @@ export default function PaymentsClient({
   const totalPages = Math.ceil(total / 30);
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="payments-page space-y-4 p-4">
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -142,9 +143,9 @@ export default function PaymentsClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springGentle, delay: 0.15 }}
-          className="flex-[7] min-w-0"
+          className="flex-[7] min-w-0 self-stretch"
         >
-          <div className="glass-card relative rounded-xl">
+          <div className="glass-card relative rounded-xl payments-search h-full">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="search"
@@ -160,13 +161,13 @@ export default function PaymentsClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springGentle, delay: 0.2 }}
-          className="flex-[3] min-w-0"
+          className="flex-[5] min-w-0 self-stretch"
         >
           <div className="relative" ref={monthRef}>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => setMonthOpen(!monthOpen)}
-              className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-lg px-3 py-3.5 transition-all duration-200"
+              className="flex items-center justify-center gap-1.5 w-full text-center text-sm font-medium text-primary bg-primary/15 rounded-xl px-3 py-3.5 ring-1 ring-white/[0.08] border border-white/[0.08] transition-all duration-200"
             >
               {monthNames[month]} {year}
               <motion.div
@@ -278,13 +279,14 @@ export default function PaymentsClient({
                     onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      const { downloadReceiptPdf: dl } = await import("@/lib/pdf");
-                      const name = p.member?.firstName || "";
-                      dl(name, p.amount, p.mode, p.createdAt, gymName);
+                      const phone = p.member?.phone;
+                      if (!phone) return;
+                      const memberName = p.member?.firstName || "";
+                      openWhatsApp(phone, receiptMessage(memberName, p.amount, p.mode, p.createdAt, gymName));
                     }}
-                    className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-primary hover:bg-primary/10 transition-all"
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:text-emerald-400 hover:bg-emerald-400/10 transition-all"
                   >
-                    <FileDown size={15} />
+                    <Receipt size={15} />
                   </motion.button>
                 </Link>
               </motion.div>

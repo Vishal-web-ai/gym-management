@@ -1,5 +1,9 @@
 export type MemberStatus = "Active" | "Overdue" | "Frozen";
 
+export function displayPhone(phone: string): string {
+  return phone.replace(/^\+?91/, "").replace(/[\s\-]/g, "");
+}
+
 export type PaymentMode = "Cash" | "UPI" | "Card";
 
 export type PaymentStatus = "Paid" | "Failed";

@@ -90,7 +90,7 @@ export default function MemberForm({
   }
 
   return (
-    <form action={dispatch} className="space-y-4">
+    <form action={dispatch} className="member-form space-y-4">
       {error && (
         <motion.div
           initial={{ opacity: 0, x: -8 }}

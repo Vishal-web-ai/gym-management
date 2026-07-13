@@ -1,7 +1,6 @@
-"use client";
-
 import { Phone, Mail, MapPin } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const quickLinks = [
   { label: "Home", href: "/" },
@@ -68,10 +67,13 @@ export default function LandingFooter() {
           {/* Logo + tagline */}
           <div className="md:col-span-1">
             <Link href="/" className="inline-block">
-              <img
-                src="/logo/logo-transparent.png"
+              <Image
+                src="/logo/logo.png"
                 alt="Rajoria Fitness"
-                className="h-10 w-auto"
+                width={855}
+                height={292}
+                sizes="60px"
+                className="h-8 md:h-12 w-auto"
               />
             </Link>
             <p className="mt-4 text-[13px] text-white/35 leading-relaxed max-w-[260px]">
@@ -147,7 +149,7 @@ export default function LandingFooter() {
             <ul className="flex flex-col gap-3">
               <li className="flex items-start gap-2.5">
                 <Phone className="h-4 w-4 mt-0.5 text-[#ff6a00]/50 shrink-0" />
-                <span className="text-[14px] text-white/40">+91 98765 43210</span>
+                <span className="text-[14px] text-white/40">9876543210</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail className="h-4 w-4 mt-0.5 text-[#ff6a00]/50 shrink-0" />

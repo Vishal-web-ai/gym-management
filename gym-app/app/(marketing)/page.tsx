@@ -1,14 +1,20 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import dynamic from "next/dynamic";
 import { checkOnboardingStatus } from "@/lib/actions/onboarding";
-import LandingHero from "@/components/LandingHero";
 import LandingComparison from "@/components/LandingComparison";
-import LandingPrograms from "@/components/LandingPrograms";
 import LandingSocialProof from "@/components/LandingSocialProof";
 import LandingPricing from "@/components/LandingPricing";
 import LandingFAQ from "@/components/LandingFAQ";
 import LandingCTA from "@/components/LandingCTA";
 import LandingFooter from "@/components/LandingFooter";
+
+const LandingHero = dynamic(() => import("@/components/LandingHero"), {
+  loading: () => <div className="h-screen animate-pulse bg-[#0a0604]" />,
+});
+const LandingPrograms = dynamic(() => import("@/components/LandingPrograms"), {
+  loading: () => <div className="h-96 animate-pulse bg-white/5" />,
+});
 
 function SectionDivider() {
   return (

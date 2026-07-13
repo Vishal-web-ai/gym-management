@@ -124,7 +124,7 @@ export default function ExpenseClient({
         className="glass-card flex items-center justify-between gap-3 rounded-xl p-4"
       >
         <div className="min-w-0">
-          <p className="text-sm text-text-secondary">Total Expenses</p>
+          <p className="text-sm text-text-secondary whitespace-nowrap">Total Expenses</p>
           <p className="text-2xl font-bold text-text-primary truncate">
             ₹{total.toLocaleString("en-IN")}
           </p>
@@ -166,9 +166,9 @@ export default function ExpenseClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springGentle, delay: 0.15 }}
-          className="flex-[7] min-w-0"
+          className="flex-[7] min-w-0 self-stretch"
         >
-          <div className="glass-card relative rounded-xl">
+          <div className="glass-card relative rounded-xl expenses-search h-full">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="search"
@@ -184,7 +184,7 @@ export default function ExpenseClient({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...springGentle, delay: 0.2 }}
-          className="flex-[3] min-w-0"
+          className="flex-[5] min-w-0 self-stretch"
         >
           <div className="relative" ref={monthRef}>
             <motion.button
@@ -254,7 +254,7 @@ export default function ExpenseClient({
               <h3 className="mb-4 text-sm font-semibold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
                 New Expense
               </h3>
-              <form action={dispatch} className="space-y-3">
+              <form action={dispatch} className="expense-form space-y-3">
                 {error && (
                   <div className="flex items-start gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-400">
                     <AlertCircle size={14} className="mt-0.5 shrink-0" />

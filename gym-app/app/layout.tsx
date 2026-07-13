@@ -4,6 +4,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import dynamic from "next/dynamic";
 import AnimLayout from "@/components/AnimLayout";
+import SplashScreen from "@/components/SplashScreen";
+import { SerwistProvider } from "./serwist";
 
 const BottomNav = dynamic(() => import("@/components/BottomNav"));
 const SidebarNav = dynamic(() => import("@/components/SidebarNav"));
@@ -35,17 +37,39 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
+const APP_NAME = "Gym Manager";
+const APP_DEFAULT_TITLE = "Gym Manager";
+const APP_TITLE_TEMPLATE = "%s - Gym Manager";
+const APP_DESCRIPTION = "Mobile-first gym management platform";
+
+export const metadata: Metadata = {
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/pwa/apple-touch-icon.png",
+  },
+};
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   themeColor: "#080E1A",
-};
-
-export const metadata: Metadata = {
-  title: "Gym Manager",
-  description: "Mobile-first gym management platform",
 };
 
 export default function RootLayout({
@@ -79,15 +103,19 @@ export default function RootLayout({
           <link rel="preconnect" href="https://img.clerk.com" />
           <link rel="dns-prefetch" href="https://clerk.com" />
           <link rel="dns-prefetch" href="https://img.clerk.com" />
+          <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
         </head>
         <body className="h-full font-sans text-text-primary">
-          <QueryProvider>
-            <SidebarNav />
-            <div className="mx-auto flex min-h-full w-full max-w-lg flex-col md:ml-64 md:max-w-none md:px-8 lg:max-w-3xl xl:max-w-4xl">
-              <AnimLayout>{children}</AnimLayout>
-            </div>
-            <BottomNav />
-          </QueryProvider>
+          <SplashScreen />
+          <SerwistProvider swUrl="/serwist/sw.js">
+            <QueryProvider>
+              <SidebarNav />
+              <div className="mx-auto flex min-h-full w-full max-w-lg flex-col md:ml-64 md:max-w-none md:px-8 lg:max-w-3xl xl:max-w-4xl">
+                <AnimLayout>{children}</AnimLayout>
+              </div>
+              <BottomNav />
+            </QueryProvider>
+          </SerwistProvider>
         </body>
       </html>
     </ClerkProvider>

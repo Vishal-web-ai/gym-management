@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
+import Image from "next/image";
 import { Clock, Users, Zap, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import MarketingHero from "./MarketingHero";
@@ -115,7 +116,7 @@ function TiltCard({
   useEffect(() => {
     if (!inView || entranceDone) return;
     const entranceX = 0;
-    const entranceY = tiltDirection * 120;
+    const entranceY = tiltDirection * 30;
     targetRef.current = { x: entranceX, y: entranceY };
     setShine({ x: tiltDirection === 1 ? 25 : 75, y: 40 });
     const holdTimer = setTimeout(() => {
@@ -221,11 +222,15 @@ function ProgramCard({
         className="w-full md:flex-1"
       >
         <TiltCard inView={inView} tiltDirection={isEven ? 1 : -1} className="aspect-[4/3]">
-          <img
-            src={program.image}
-            alt={program.name}
-            className="h-full w-full object-cover"
-          />
+          <div className="relative h-full w-full">
+            <Image
+              src={program.image}
+              alt={program.name}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
+          </div>
           <div className="absolute inset-0 rounded-2xl border-[3px] border-[#ff6a00] pointer-events-none" />
           <div
             className="absolute inset-0 pointer-events-none"

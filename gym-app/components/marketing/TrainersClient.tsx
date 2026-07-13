@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, useInView, AnimatePresence } from "motion/react";
+import Image from "next/image";
 import { Award, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import MarketingHero from "./MarketingHero";
@@ -120,10 +121,12 @@ function TrainerCard({
       className="group glass-card rounded-2xl overflow-hidden"
     >
       <div className="relative aspect-[3/4] overflow-hidden">
-        <img
+        <Image
           src={trainer.image}
           alt={trainer.name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
